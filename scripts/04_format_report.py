@@ -18,6 +18,13 @@ Formats data/output/po_reporting_periods.xlsx (produced by
   - Every column gets a bold, centered, grey header with a bottom
     border, and is auto-sized to fit its contents. The header row is
     frozen so it stays visible while scrolling through the sorted data.
+  - Each worksheet's data range is turned into an Excel Table (with no
+    banding of its own, so the month shading above is untouched) and
+    given a real Excel Slicer bound to its reporting_month column, so a
+    reviewer can multi-select months and have Excel show/hide matching
+    rows live, with a built-in Clear Filter reset. openpyxl can't create
+    slicers itself, so the slicer XML parts are hand-built and patched
+    into the saved workbook - see _excel_slicers.py for why and how.
 """
 import re
 import zipfile
@@ -27,6 +34,9 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
+
+from _excel_slicers import SheetSlicerTarget, add_reporting_month_slicers
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "output" / "po_reporting_periods.xlsx"
@@ -103,7 +113,12 @@ wb = load_workbook(SRC)
 # not serialize it, matching the workaround in 03_split_by_reporting_period.py).
 text_column_letters_by_sheet = {}
 
-for ws in wb.worksheets:
+# sheet_name -> SheetSlicerTarget-ish info, needed to patch in a real
+# reporting_month Slicer after save (openpyxl can't create one itself -
+# see _excel_slicers.py).
+slicer_info_by_sheet = {}
+
+for table_id, ws in enumerate(wb.worksheets, start=1):
     rows = list(ws.iter_rows(values_only=True))
     if len(rows) <= 1:
         continue
@@ -196,6 +211,22 @@ for ws in wb.worksheets:
 
     ws.freeze_panes = "A2"
 
+    # Real Excel Table backing the reporting_month Slicer added below.
+    # No built-in style/banding, so it doesn't fight with the month
+    # shading and header styling already applied above.
+    table_ref = f"A1:{get_column_letter(len(header))}{ws.max_row}"
+    table = Table(
+        id=table_id,
+        displayName=f"Table{table_id}",
+        ref=table_ref,
+        tableColumns=[TableColumn(id=i, name=str(name)) for i, name in enumerate(header, start=1)],
+    )
+    table.tableStyleInfo = TableStyleInfo(
+        showFirstColumn=False, showLastColumn=False, showRowStripes=False, showColumnStripes=False
+    )
+    ws.add_table(table)
+    slicer_info_by_sheet[ws.title] = (table_id, reporting_month_idx + 1, len(header))
+
 wb.save(DST)
 
 with zipfile.ZipFile(DST, "r") as zin:
@@ -217,21 +248,43 @@ for sheet_tag in re.findall(r"<sheet\b[^>]*/>", workbook_xml):
     rid = re.search(r'r:id="(rId\d+)"', sheet_tag).group(1)
     name_to_rid[name] = rid
 
-for sheet_name, (text_column_letters, last_row) in text_column_letters_by_sheet.items():
+sheet_path_by_name = {}
+for sheet_name in name_to_rid:
     target = rid_to_target[name_to_rid[sheet_name]].lstrip("/")
-    sheet_path = target if target.startswith("xl/") else f"xl/{target}"
+    sheet_path_by_name[sheet_name] = target if target.startswith("xl/") else f"xl/{target}"
+
+for sheet_name, (text_column_letters, last_row) in text_column_letters_by_sheet.items():
+    sheet_path = sheet_path_by_name[sheet_name]
 
     ignored_errors_xml = "<ignoredErrors>" + "".join(
         f'<ignoredError sqref="{letter}2:{letter}{last_row}" numberStoredAsText="1"/>'
         for letter in text_column_letters
     ) + "</ignoredErrors>"
 
+    # <ignoredErrors> must precede <drawing>/<tableParts> per the OOXML
+    # worksheet element order, so anchor on <tableParts> (added by
+    # ws.add_table() above) rather than blindly prepending </worksheet>.
     sheet_xml = contents[sheet_path].decode("utf-8")
-    sheet_xml = sheet_xml.replace("</worksheet>", ignored_errors_xml + "</worksheet>")
+    if "<tableParts" in sheet_xml:
+        sheet_xml = sheet_xml.replace("<tableParts", ignored_errors_xml + "<tableParts", 1)
+    else:
+        sheet_xml = sheet_xml.replace("</worksheet>", ignored_errors_xml + "</worksheet>")
     contents[sheet_path] = sheet_xml.encode("utf-8")
 
+slicer_targets = [
+    SheetSlicerTarget(
+        sheet_path=sheet_path_by_name[sheet_name],
+        table_id=table_id,
+        slicer_index=table_id,
+        reporting_month_column=reporting_month_column,
+        num_columns=num_columns,
+    )
+    for sheet_name, (table_id, reporting_month_column, num_columns) in slicer_info_by_sheet.items()
+]
+contents = add_reporting_month_slicers(contents, slicer_targets)
+
 with zipfile.ZipFile(DST, "w", zipfile.ZIP_DEFLATED) as zout:
-    for name in names:
+    for name in contents:
         zout.writestr(name, contents[name])
 
 print(f"Sorted and formatted: {DST}")
