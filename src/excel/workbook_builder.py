@@ -149,11 +149,11 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
         ]
         last_row = len(data_rows) + HEADER_ROW
 
-        # Column widths (auto-sized to each column's longest value) and
-        # freeze_panes both precede the cell data in the worksheet XML, so
-        # write-only mode requires setting them before any row is appended.
-        # A single pass over data_rows tracking a running max per column
-        # avoids one full O(rows) rescan per column.
+        # Column widths (auto-sized to each column's longest value) precede
+        # the cell data in the worksheet XML, so write-only mode requires
+        # setting them before any row is appended. A single pass over
+        # data_rows tracking a running max per column avoids one full
+        # O(rows) rescan per column.
         longest_by_col = [len(str(col_name)) for col_name in header]
         for row in data_rows:
             for col_idx, value in enumerate(row):
@@ -166,7 +166,6 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
             ws.column_dimensions[col_letter].width = max(
                 MIN_COLUMN_WIDTH, min(longest + 2, MAX_COLUMN_WIDTH)
             )
-        ws.freeze_panes = f"A{DATA_START_ROW}"
 
         # Title row: merged across every table column and centered, styled
         # distinctly from the header row below it so it clearly reads as a
