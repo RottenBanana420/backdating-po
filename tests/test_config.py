@@ -13,6 +13,9 @@ def test_root_is_the_actual_repo_root():
 
 
 def test_root_unaffected_by_working_directory(tmp_path, monkeypatch):
+    # Reloading config_module mutates a module other tests also import from,
+    # but it's safe: config.py holds only plain paths/lists rebuilt
+    # identically on reload, nothing compared by identity or mutated further.
     monkeypatch.chdir(tmp_path)
     reloaded = importlib.reload(config_module)
     assert reloaded.ROOT == REPO_ROOT

@@ -36,6 +36,7 @@ CSV file --> csv_loader --> transform --> workbook_builder --> workbook_writer -
 backdating-po/
 ├── main.py                       # CLI entry point
 ├── pyproject.toml                # package metadata + dependencies
+├── .github/workflows/ci.yml      # CI: pytest on Python 3.10-3.12
 ├── src/
 │   ├── config.py                 # paths, column lists, sheet names
 │   ├── csv_loader.py             # raw CSV read + row repair
@@ -107,9 +108,12 @@ python main.py --input path/to/your.csv --output path/to/report.xlsx
 pytest
 ```
 
-Covers CSV row repair, date/period-split logic, and one end-to-end
-integration test that runs the full pipeline against the sample dataset
-and checks the resulting workbook's structure.
+Covers CSV row repair and edge cases, date/period-split logic, `config.py`
+path resolution, the styled-workbook builder (row shading, highlighted
+columns, Excel Table), the writer's XML patching (`ignoredErrors`, Slicer
+injection), the hand-authored Slicer XML itself, and end-to-end pipeline
+integration tests (including empty-result and missing-output-directory
+cases) against the sample dataset.
 
 ## Troubleshooting
 

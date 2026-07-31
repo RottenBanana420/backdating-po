@@ -47,3 +47,11 @@ def test_load_and_clean_rows_raises_cleanly_on_non_cp1252_bytes(tmp_path):
 
     with pytest.raises(UnicodeDecodeError):
         load_and_clean_rows(bad_file)
+
+
+def test_load_and_clean_rows_raises_clear_error_on_zero_byte_file(tmp_path):
+    empty_file = tmp_path / "empty.csv"
+    empty_file.write_bytes(b"")
+
+    with pytest.raises(ValueError, match="empty"):
+        load_and_clean_rows(empty_file)

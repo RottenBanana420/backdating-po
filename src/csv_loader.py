@@ -39,6 +39,9 @@ def load_and_clean_rows(path):
             continue
         reader_rows.append(fields)
 
+    if header is None:
+        raise ValueError(f"No header row found in {path} - the file appears to be empty.")
+
     logger.info("Header columns: %d", len(header))
     logger.info("Clean data rows: %d", len(reader_rows))
     logger.info("Rows still misaligned after fix: %d", len(bad_rows))

@@ -3,6 +3,33 @@
 All notable changes to this project are documented in this file, in the
 style of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- `.github/workflows/ci.yml`: runs `pytest` on Python 3.10/3.11/3.12 for
+  every push/PR to `main`, with pip caching, a read-only `contents`
+  permission, and `concurrency` cancellation of superseded runs.
+- Unit test coverage for the previously-untested `src/excel/` subpackage
+  (`workbook_builder.py`, `workbook_writer.py`, `excel_slicers.py`),
+  `config.py`, and `logging_config.py`, plus edge-case coverage for
+  `csv_loader.py`, `transform.py`, and `pipeline.py` (empty CSVs,
+  unrecoverable rows, month-boundary dates, zero-row output, missing
+  output directories). Suite grew from 6 to 37 tests.
+- CI status badge in `README.md`.
+
+### Changed
+
+- `docs/CONTRIBUTING.md`'s testing-expectations section now covers all of
+  `src/`, not just `csv_loader.py`/`transform.py`.
+
+### Fixed
+
+- `csv_loader.load_and_clean_rows` raised an unhandled `TypeError` on a
+  genuinely zero-byte input CSV (`len(None)`, since no header row was ever
+  found) instead of a clear error. Now raises `ValueError` with a message
+  naming the empty file.
+
 ## [0.2.1] - 2026-07-30
 
 ### Changed
