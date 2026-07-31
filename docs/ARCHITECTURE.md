@@ -67,8 +67,8 @@ config.py ─┬─> csv_loader.py ─┐
                           pipeline.py  (orchestrates all of the above)
                           │        │
                           v        v
-                     main.py   src/uploads.py <── streamlit_app.py
-                     (CLI)     (temp-file bridge for in-memory uploads)
+                     main.py   src/uploads.py <── src/app.py
+                  (CLI mode)   (temp-file bridge for in-memory uploads)
 ```
 
 Every module below `pipeline.py` is a pure function of its inputs (no
@@ -80,18 +80,31 @@ pipeline logic.
 
 ## UI layer
 
-`streamlit_app.py` (repo root) is a second, independent entry point
-alongside `main.py`, for users who'd rather drag-and-drop a CSV in a
-browser than run a CLI. It never calls `csv_loader`/`transform`/`excel/*`
-directly — all of that goes through `src/uploads.py`, which exists solely
-to bridge a Streamlit `UploadedFile`'s in-memory bytes to `pipeline.run()`'s
-Path-based contract: `workbook_writer.save_workbook` reopens its
-destination file as a zip twice to hand-patch XML, so it needs a real path
-on disk, not a `BytesIO`. `src/uploads.py` writes the upload to a scoped
+`main.py` is a single entry point with two modes, chosen by its arguments:
+
+- **No arguments** (`python main.py`) → `main.launch_ui()` subprocesses
+  `streamlit run src/app.py`, for users who'd rather drag-and-drop a CSV in
+  a browser than run a CLI. This is the default because it's the lower-
+  friction path for the typical user; scripting/automation is the exception,
+  not the norm, for this tool.
+- **`--input`/`--output` given** → runs `pipeline.run()` directly, no
+  Streamlit involved (CLI mode).
+
+`src/app.py` never calls `csv_loader`/`transform`/`excel/*` directly — all
+of that goes through `src/uploads.py`, which exists solely to bridge a
+Streamlit `UploadedFile`'s in-memory bytes to `pipeline.run()`'s Path-based
+contract: `workbook_writer.save_workbook` reopens its destination file as a
+zip twice to hand-patch XML, so it needs a real path on disk, not a
+`BytesIO`. `src/uploads.py` writes the upload to a scoped
 `tempfile.TemporaryDirectory`, calls `pipeline.run()` against it, reads the
 result back into memory, and lets the temp directory clean itself up. It
 has no Streamlit import, so it's tested directly with plain bytes in
 `tests/test_uploads.py`, independent of the UI.
+
+`src/app.py` lives under `src/` rather than the repo root because `main.py`
+is meant to be the one, obvious thing a user runs — `src/app.py` is an
+implementation detail `main.py` launches, not a second entry point users
+are expected to invoke (`streamlit run src/app.py`) directly.
 
 ## Data flow
 
@@ -148,4 +161,7 @@ subprocessing a script?** The original `main.py` used
 hop with no benefit once the pipeline is an importable package. A direct
 function call is simpler, preserves the same console output and exit
 codes, and is what makes the pipeline testable via `pipeline.run()` in
-`tests/test_pipeline_integration.py`.
+`tests/test_pipeline_integration.py`. This applies to CLI mode only —
+UI mode does subprocess (`streamlit run src/app.py`), because a Streamlit
+app is a script Streamlit itself must drive (its own server loop, session
+state, hot-reload), not a function `main.py` could call in-process.

@@ -34,12 +34,14 @@ CSV file --> csv_loader --> transform --> workbook_builder --> workbook_writer -
 
 ```
 backdating-po/
-├── main.py                       # CLI entry point
-├── streamlit_app.py              # Web UI entry point
+├── main.py                       # entry point: launches the web UI by
+│                                  # default, or runs the CLI pipeline
+│                                  # directly when given --input/--output
 ├── pyproject.toml                # package metadata + dependencies
 ├── LICENSE                       # Apache 2.0
 ├── .github/workflows/ci.yml      # CI: pytest on Python 3.10-3.12
 ├── src/
+│   ├── app.py                    # Web UI (Streamlit), launched by main.py
 │   ├── config.py                 # paths, column lists, sheet names
 │   ├── csv_loader.py             # raw CSV read + row repair
 │   ├── transform.py              # column trimming, date logic, period split
@@ -71,14 +73,12 @@ backdating-po/
 ```bash
 python3 -m venv venv
 source venv/bin/activate       # Windows: venv\Scripts\activate
-pip install -e ".[dev]"
-```
-
-To also run the [Web UI](#web-ui), install the `app` extra as well:
-
-```bash
 pip install -e ".[dev,app]"
 ```
+
+The `app` extra installs Streamlit, needed for the [Web UI](#web-ui) that
+`main.py` launches by default. Omit it (`pip install -e ".[dev]"`) if you
+only ever intend to use [CLI mode](#cli-mode).
 
 ## Configuration
 
@@ -90,13 +90,24 @@ a config file, since there's nothing else to configure.
 
 ## Running locally
 
-Drop your raw export at `data/raw/raw_data.csv`, then:
+Install the `app` extra so the web UI is available, then run `main.py` with
+no arguments — this is the default way to use the tool:
 
 ```bash
+pip install -e ".[dev,app]"
 python main.py
 ```
 
-This writes `data/output/po_reporting_periods.xlsx`.
+This launches the [Web UI](#web-ui) at `http://localhost:8501`.
+
+### CLI mode
+
+Passing `--input`/`--output` runs the pipeline directly instead, no browser
+involved — useful for scripting or automation:
+
+```bash
+python main.py --input data/raw/raw_data.csv --output data/output/po_reporting_periods.xlsx
+```
 
 No real data on hand? Run the pipeline against the tracked synthetic sample
 dataset instead:
@@ -105,26 +116,13 @@ dataset instead:
 python main.py --input data/sample/sample_raw_data.csv --output data/output/demo.xlsx
 ```
 
-Full usage:
-
-```bash
-python main.py --input path/to/your.csv --output path/to/report.xlsx
-```
-
 ## Web UI
 
-A Streamlit front-end wraps the same pipeline used by `main.py` — see
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the underlying
-load → transform → split → build → save stages work; the UI adds nothing to
-that pipeline, it only bridges an uploaded CSV's in-memory bytes to it (see
-`src/uploads.py`).
-
-Install the extra and run:
-
-```bash
-pip install -e ".[dev,app]"
-streamlit run streamlit_app.py
-```
+A Streamlit front-end (`src/app.py`, launched by `main.py`) wraps the same
+pipeline used by CLI mode — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+for how the underlying load → transform → split → build → save stages work;
+the UI adds nothing to that pipeline, it only bridges an uploaded CSV's
+in-memory bytes to it (see `src/uploads.py`).
 
 1. **Upload** a raw PO-receipt `.csv` — drag-and-drop onto the upload box,
    or click it to browse. A preview of the first rows is shown immediately,
@@ -155,9 +153,9 @@ path resolution, the styled-workbook builder (row shading, highlighted
 columns, Excel Table), the writer's XML patching (`ignoredErrors`, Slicer
 injection), the hand-authored Slicer XML itself, end-to-end pipeline
 integration tests (including empty-result and missing-output-directory
-cases) against the sample dataset, and the Web UI's upload-to-pipeline
-adapter (`src/uploads.py`) plus a smoke test confirming `streamlit_app.py`
-loads without error.
+cases) against the sample dataset, `main.py`'s UI-vs-CLI dispatch logic,
+and the Web UI's upload-to-pipeline adapter (`src/uploads.py`) plus a
+smoke test confirming `src/app.py` loads without error.
 
 ## Troubleshooting
 

@@ -5,6 +5,15 @@ style of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `python main.py` with no arguments now launches the Streamlit web UI by
+  default (subprocessing `streamlit run src/app.py`); passing
+  `--input`/`--output` still runs the CLI pipeline directly, unchanged.
+  Moved `streamlit_app.py` to `src/app.py` so `main.py` is the repo's one
+  entry point, with the UI as an implementation detail it launches rather
+  than a second script users invoke directly.
+
 ### Added
 
 - `.github/workflows/ci.yml`: runs `pytest` on Python 3.10/3.11/3.12 for
