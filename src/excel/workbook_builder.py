@@ -103,6 +103,7 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
     _report_progress()
 
     reporting_month_idx = header.index("reporting_month")
+    receive_date_idx = header.index("receive_date")
     highlight_indices = {header.index(c) for c in HIGHLIGHT_COLUMNS}
     # reporting_month / po / invoiceid must stay Text-formatted and
     # left-aligned so Excel doesn't auto-detect them and re-flag them.
@@ -121,7 +122,12 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
         logger.debug("Building sheet %r: %d row(s)", sheet_name, len(rows))
         ws = wb.create_sheet(sheet_name)
 
-        data_rows = sorted(rows, key=lambda r: parse_reporting_month(r[reporting_month_idx]))
+        # Primary sort by reporting_month, then by receive_date ascending
+        # (oldest to newest) within each reporting_month group.
+        data_rows = sorted(
+            rows,
+            key=lambda r: (parse_reporting_month(r[reporting_month_idx]), to_date_only(r[receive_date_idx])),
+        )
         data_rows = [
             tuple(
                 to_date_only(value) if col_num in highlight_indices else value

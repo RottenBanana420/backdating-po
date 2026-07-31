@@ -60,6 +60,21 @@ def test_build_workbook_shades_rows_by_reporting_month(tmp_path):
     assert feb_fill == "00" + MONTH_FILL_COLORS[1]
 
 
+def test_build_workbook_sorts_by_receive_date_within_reporting_month(tmp_path):
+    # Deliberately out of chronological order in the input.
+    rows = [
+        _row(reporting_month="January 2026", receive_date="1/25/2026 00:00:00", vend="Third"),
+        _row(reporting_month="January 2026", receive_date="1/5/2026 00:00:00", vend="First"),
+        _row(reporting_month="January 2026", receive_date="1/18/2026 00:00:00", vend="Second"),
+    ]
+
+    wb, _, _ = _build_and_reload(tmp_path, {WITHIN_SHEET: rows})
+    ws = wb[WITHIN_SHEET]
+
+    vend_col = HEADER.index("vend") + 1
+    assert [ws.cell(row=r, column=vend_col).value for r in (2, 3, 4)] == ["First", "Second", "Third"]
+
+
 def test_build_workbook_highlights_tlc_and_receive_date_columns(tmp_path):
     wb, _, _ = _build_and_reload(tmp_path, {WITHIN_SHEET: [_row()]})
     ws = wb[WITHIN_SHEET]
