@@ -3,7 +3,7 @@ import zipfile
 
 from openpyxl import load_workbook
 
-from src.config import COLUMNS_TO_KEEP, WITHIN_SHEET
+from src.config import COLUMNS_TO_KEEP, OUTSIDE_SHEET, WITHIN_SHEET
 from src.excel.excel_slicers import SheetSlicerTarget, add_reporting_month_slicers
 from src.excel.workbook_builder import build_workbook
 
@@ -52,8 +52,8 @@ def test_add_reporting_month_slicers_adds_well_formed_xml_parts(tmp_path):
 
 
 def test_add_reporting_month_slicers_references_correct_table_and_column(tmp_path):
-    contents, slicer_info = _saved_contents(tmp_path, {WITHIN_SHEET: [_row()]})
-    target = _target_for(contents, slicer_info, WITHIN_SHEET)
+    contents, slicer_info = _saved_contents(tmp_path, {WITHIN_SHEET: [_row()], OUTSIDE_SHEET: [_row()]})
+    target = _target_for(contents, slicer_info, OUTSIDE_SHEET)
 
     patched = add_reporting_month_slicers(contents, [target])
 
