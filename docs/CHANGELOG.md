@@ -8,20 +8,27 @@ style of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `.github/workflows/ci.yml`: runs `pytest` on Python 3.10/3.11/3.12 for
-  every push/PR to `main`, with pip caching, a read-only `contents`
-  permission, and `concurrency` cancellation of superseded runs.
+  every push/PR to `main`, using `actions/checkout@v7` and
+  `actions/setup-python@v7`, with pip caching, a read-only `contents`
+  permission, `concurrency` cancellation of superseded runs, and
+  `fail-fast: false` so one Python version's failure doesn't hide the
+  others' results.
 - Unit test coverage for the previously-untested `src/excel/` subpackage
   (`workbook_builder.py`, `workbook_writer.py`, `excel_slicers.py`),
   `config.py`, and `logging_config.py`, plus edge-case coverage for
   `csv_loader.py`, `transform.py`, and `pipeline.py` (empty CSVs,
   unrecoverable rows, month-boundary dates, zero-row output, missing
-  output directories). Suite grew from 6 to 37 tests.
+  output directories, zero-byte input). Suite grew from 6 to 38 tests.
 - CI status badge in `README.md`.
 
 ### Changed
 
 - `docs/CONTRIBUTING.md`'s testing-expectations section now covers all of
   `src/`, not just `csv_loader.py`/`transform.py`.
+- Strengthened `workbook_writer`'s `ignoredErrors` test to assert an exact
+  count of `<ignoredError>` entries, not just that the expected ones are
+  present — closes a gap where a bogus extra entry could slip through
+  undetected.
 
 ### Fixed
 

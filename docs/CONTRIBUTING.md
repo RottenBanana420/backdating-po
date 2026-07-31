@@ -46,11 +46,12 @@
 ## Testing expectations
 
 - New or changed logic anywhere in `src/` — including the `excel/`
-  subpackage and `config.py`, not just `csv_loader.py`/`transform.py` —
-  needs unit test coverage. See `tests/test_csv_loader.py`,
-  `tests/test_transform.py`, `tests/test_workbook_builder.py`,
-  `tests/test_workbook_writer.py`, `tests/test_excel_slicers.py`, and
-  `tests/test_config.py` for the existing style: small, synthetic
+  subpackage, `config.py`, and `logging_config.py`, not just
+  `csv_loader.py`/`transform.py` — needs unit test coverage. See
+  `tests/test_csv_loader.py`, `tests/test_transform.py`,
+  `tests/test_workbook_builder.py`, `tests/test_workbook_writer.py`,
+  `tests/test_excel_slicers.py`, `tests/test_config.py`, and
+  `tests/test_logging_config.py` for the existing style: small, synthetic
   fixtures, one behavior per test.
 - Changes to `pipeline.py`'s stage wiring need
   `tests/test_pipeline_integration.py` updated to match.

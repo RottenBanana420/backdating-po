@@ -36,6 +36,7 @@ CSV file --> csv_loader --> transform --> workbook_builder --> workbook_writer -
 backdating-po/
 ├── main.py                       # CLI entry point
 ├── pyproject.toml                # package metadata + dependencies
+├── LICENSE                       # Apache 2.0
 ├── .github/workflows/ci.yml      # CI: pytest on Python 3.10-3.12
 ├── src/
 │   ├── config.py                 # paths, column lists, sheet names
@@ -129,6 +130,8 @@ cases) against the sample dataset.
 - **`UnicodeDecodeError` on load** — the source CSV isn't `cp1252`-encoded.
   If your export uses a different encoding, change `ENCODING` in
   `src/config.py`.
+- **`ValueError: No header row found...`** — the input CSV is empty (zero
+  bytes). Point `--input` at a file that at least has a header row.
 - **Excel shows an "Out of date" banner on the Slicer when you first open
   the report** — expected, one-time, harmless. Click **Update** once; see
   the docstring in `src/excel/excel_slicers.py` for why.

@@ -78,7 +78,8 @@ shared mutable state, no module reads another's output off disk) —
 
 1. **Raw CSV row** (full source export schema, `cp1252`-encoded, `\r\n`-delimited) →
    `csv_loader.load_and_clean_rows` repairs any row torn by a stray CR/LF
-   embedded in a field, returning `(header, rows)`.
+   embedded in a field, returning `(header, rows)`. Raises `ValueError` if
+   the file has no header row at all (i.e. is empty).
 2. **Trimmed + dated row** → `transform.build_trimmed_rows` keeps only the
    12 business-relevant columns and prepends a `reporting_month` column
    derived from `receive_date` (`"%B %Y"`, e.g. `"January 2026"`).
