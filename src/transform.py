@@ -14,22 +14,37 @@ logger = logging.getLogger(__name__)
 def build_trimmed_rows(header, rows):
     with log_stage(logger, "trim rows to business columns and tag reporting_month"):
         logger.debug("Trimming %d row(s) down to %d business column(s)", len(rows), len(COLUMNS_TO_KEEP))
-        output_columns = ["reporting_month"] + COLUMNS_TO_KEEP
+        output_columns = ["reporting_month", *COLUMNS_TO_KEEP]
         col_idx = {name: header.index(name) for name in COLUMNS_TO_KEEP}
 
         out_rows = []
-        for row in rows:
-            receive_date = datetime.strptime(row[col_idx["receive_date"]], "%m/%d/%Y %H:%M:%S")
-            reporting_month = receive_date.strftime("%B %Y")
-            new_row = [reporting_month]
-            for col in COLUMNS_TO_KEEP:
-                value = row[col_idx[col]]
-                if col == "rcvtotalamt":
-                    value = float(value)
-                new_row.append(value)
+        bad_rows = []
+        for i, row in enumerate(rows, start=1):
+            try:
+                receive_date = datetime.strptime(row[col_idx["receive_date"]], "%m/%d/%Y %H:%M:%S")
+                reporting_month = receive_date.strftime("%B %Y")
+                new_row = [reporting_month]
+                for col in COLUMNS_TO_KEEP:
+                    value = row[col_idx[col]]
+                    if col == "rcvtotalamt":
+                        value = float(value)
+                    new_row.append(value)
+            except ValueError as exc:
+                # An unparseable receive_date or rcvtotalamt is a data-quality
+                # issue confined to this one row - quarantine it (skip, count,
+                # keep going) the same way csv_loader.py isolates structurally
+                # broken rows, rather than aborting a multi-thousand-row audit
+                # over a single bad value.
+                bad_rows.append((i, exc))
+                continue
             out_rows.append(new_row)
 
-    return output_columns, out_rows
+        if bad_rows:
+            logger.warning("Rows skipped due to unparseable field values: %d (dropped)", len(bad_rows))
+            for i, exc in bad_rows[:20]:
+                logger.debug("  row %d: %s", i, exc)
+
+    return output_columns, out_rows, len(bad_rows)
 
 
 def parse_date(value):

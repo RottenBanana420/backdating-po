@@ -143,8 +143,8 @@ with st.container(border=True):
         logger.info("File selected: %s (%d bytes)", uploaded_file.name, uploaded_file.size)
         try:
             validate_extension(uploaded_file.name)
-            header, rows = load_raw_preview(st.session_state.csv_bytes)
-            st.session_state.raw_preview = (header, rows)
+            header, rows, dropped_row_count = load_raw_preview(st.session_state.csv_bytes)
+            st.session_state.raw_preview = (header, rows, dropped_row_count)
         except InvalidUpload as exc:
             st.session_state.upload_error = str(exc)
         except ValueError as exc:
@@ -159,8 +159,15 @@ with st.container(border=True):
         st.error(st.session_state.upload_error, icon=":material/error:")
 
     if st.session_state.raw_preview:
-        header, rows = st.session_state.raw_preview
+        header, rows, dropped_row_count = st.session_state.raw_preview
         st.success(f"Loaded **{st.session_state.filename}** - looks good so far.", icon=":material/check_circle:")
+        if dropped_row_count:
+            st.warning(
+                f"{dropped_row_count} row(s) in this file have data that couldn't be lined up into "
+                "columns correctly and will be excluded from the audit. The rest of the file will "
+                "still be processed normally.",
+                icon=":material/warning:",
+            )
         st.caption(f"Preview of the first {len(rows)} row(s), exactly as uploaded:")
         st.dataframe(_rows_to_records(header, rows), width="stretch")
 
@@ -241,6 +248,17 @@ if st.session_state.result:
             f"Audit complete: **{sum(result['counts'].values())}** purchase order(s) reviewed.",
             icon=":material/task_alt:",
         )
+
+        excluded_row_count = result["dropped_row_count"] + result["skipped_row_count"]
+        if excluded_row_count:
+            st.warning(
+                f"**{excluded_row_count} row(s) were excluded** from this report and aren't "
+                "reflected in the count above - "
+                f"{result['dropped_row_count']} with data that couldn't be lined up into columns, "
+                f"{result['skipped_row_count']} with a receive date or amount that couldn't be read. "
+                "Check the original export for these rows before relying on this report as complete.",
+                icon=":material/warning:",
+            )
 
         within_tab, outside_tab = st.tabs([config.WITHIN_SHEET, config.OUTSIDE_SHEET])
         with within_tab:

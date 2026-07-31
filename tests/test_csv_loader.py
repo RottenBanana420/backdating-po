@@ -11,11 +11,12 @@ TOO_BROKEN_FIXTURE = Path(__file__).parent / "fixtures" / "too_broken.csv"
 
 
 def test_load_and_clean_rows_repairs_split_rows():
-    header, rows = load_and_clean_rows(FIXTURE)
+    header, rows, dropped_row_count = load_and_clean_rows(FIXTURE)
 
     assert header == ["a", "b", "c", "d", "e"]
     assert len(rows) == 4
     assert all(len(row) == 5 for row in rows)
+    assert dropped_row_count == 0
 
     # The row with the stray embedded \r in field c should have that
     # character stripped, not left dangling or dropped as misaligned.
@@ -23,19 +24,21 @@ def test_load_and_clean_rows_repairs_split_rows():
 
 
 def test_load_and_clean_rows_handles_header_only_csv():
-    header, rows = load_and_clean_rows(HEADER_ONLY_FIXTURE)
+    header, rows, dropped_row_count = load_and_clean_rows(HEADER_ONLY_FIXTURE)
 
     assert header == ["a", "b", "c", "d", "e"]
     assert rows == []
+    assert dropped_row_count == 0
 
 
 def test_load_and_clean_rows_drops_rows_with_unrecoverable_field_count(caplog):
     caplog.set_level(logging.INFO)
 
-    header, rows = load_and_clean_rows(TOO_BROKEN_FIXTURE)
+    header, rows, dropped_row_count = load_and_clean_rows(TOO_BROKEN_FIXTURE)
 
     assert header == ["a", "b", "c", "d", "e"]
     assert rows == [["11", "12", "13", "14", "15"]]
+    assert dropped_row_count == 1
     assert "Rows still misaligned after fix: 1" in caplog.text
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1

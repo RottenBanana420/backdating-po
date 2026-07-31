@@ -46,20 +46,23 @@ def validate_columns(header: list) -> None:
 
 def load_raw_preview(csv_bytes: bytes, limit: int = 20):
     """Writes csv_bytes to a temp file, loads+validates it, returns
-    (header, rows[:limit]) exactly as uploaded, before any transformation.
+    (header, rows[:limit], dropped_row_count) exactly as uploaded, before any
+    transformation. dropped_row_count is how many rows load_and_clean_rows
+    couldn't recover (structurally misaligned) and excluded - surfaced here
+    so the UI can warn the user at upload time, not just log it.
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         src = Path(tmp_dir) / "upload.csv"
         src.write_bytes(csv_bytes)
-        header, rows = load_and_clean_rows(src)
+        header, rows, dropped_row_count = load_and_clean_rows(src)
         validate_columns(header)
-        return header, rows[:limit]
+        return header, rows[:limit], dropped_row_count
 
 
 def process_upload(
     csv_bytes: bytes,
     preview_limit: int = 20,
-    on_stage: Optional[Callable[[str], None]] = None,
+    on_stage: Callable[[str], None] | None = None,
 ) -> dict:
     """Runs the full pipeline against uploaded CSV bytes.
 
@@ -74,6 +77,13 @@ def process_upload(
       - counts: {sheet_name: row_count} from pipeline.run()
       - header: the trimmed output columns (reporting_month + business columns)
       - preview_sheets: {sheet_name: rows[:preview_limit]} for on-screen preview
+      - dropped_row_count: rows excluded because the CSV row was structurally
+        misaligned (bad field count) and unrecoverable
+      - skipped_row_count: rows excluded because receive_date/rcvtotalamt
+        couldn't be parsed
+      Both counts are 0 for a clean file; a non-zero value means the report
+      doesn't cover every input row, so the caller (src/app.py) surfaces
+      them to the user rather than letting the shortfall go unnoticed.
     """
     def _notify(stage: str) -> None:
         if on_stage is not None:
@@ -95,17 +105,22 @@ def process_upload(
         # pipeline.run() has no pre-parsed-rows parameter, and adding one
         # purely for this convenience isn't worth changing a tested public
         # function's contract for typical monthly-export file sizes.
-        raw_header, raw_rows = load_and_clean_rows(src)
+        raw_header, raw_rows, dropped_row_count = load_and_clean_rows(src)
         validate_columns(raw_header)
 
         _notify("preparing")
-        header, rows = build_trimmed_rows(raw_header, raw_rows)
+        header, rows, skipped_row_count = build_trimmed_rows(raw_header, raw_rows)
         sheets = split_by_reporting_period(header, rows)
 
         _notify("building_report")
         counts = run_pipeline(src=src, dst=dst)
         xlsx_bytes = dst.read_bytes()
         logger.info("Report ready: %d bytes, %d total row(s)", len(xlsx_bytes), sum(counts.values()))
+        if dropped_row_count or skipped_row_count:
+            logger.warning(
+                "Rows excluded from report: %d (dropped_row_count=%d, skipped_row_count=%d)",
+                dropped_row_count + skipped_row_count, dropped_row_count, skipped_row_count,
+            )
 
     return {
         "xlsx_bytes": xlsx_bytes,
@@ -115,4 +130,6 @@ def process_upload(
             WITHIN_SHEET: sheets[WITHIN_SHEET][:preview_limit],
             OUTSIDE_SHEET: sheets[OUTSIDE_SHEET][:preview_limit],
         },
+        "dropped_row_count": dropped_row_count,
+        "skipped_row_count": skipped_row_count,
     }

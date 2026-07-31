@@ -50,10 +50,12 @@ def load_and_clean_rows(path):
         if bad_rows:
             # A non-zero count means the source system emitted rows this
             # delimiter-repair pass couldn't fully recover - worth a
-            # WARNING (not INFO) since those rows are silently dropped
-            # from the report.
+            # WARNING (not INFO) since those rows are dropped from the
+            # report. The count is also returned to the caller (rather than
+            # only logged) so it can reach the user - a WARNING log line
+            # alone never reaches the Streamlit UI.
             logger.warning("Rows still misaligned after fix: %d (dropped)", len(bad_rows))
             for i, n, fields in bad_rows[:20]:
                 logger.debug("  line %d: %d fields -> %s", i, n, fields)
 
-    return header, reader_rows
+    return header, reader_rows, len(bad_rows)

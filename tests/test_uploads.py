@@ -34,18 +34,19 @@ def test_validate_columns_rejects_missing_business_columns():
 
 
 def test_validate_columns_accepts_full_header():
-    header = config.COLUMNS_TO_KEEP + ["some_extra_column"]
+    header = [*config.COLUMNS_TO_KEEP, "some_extra_column"]
     validate_columns(header)
 
 
 def test_load_raw_preview_returns_header_and_limited_rows():
     csv_bytes = SAMPLE.read_bytes()
 
-    header, rows = load_raw_preview(csv_bytes, limit=2)
+    header, rows, dropped_row_count = load_raw_preview(csv_bytes, limit=2)
 
     assert "vend" in header
     assert "reqhdr_id" in header  # raw header, not the trimmed business set
     assert len(rows) <= 2
+    assert dropped_row_count == 0
 
 
 def test_load_raw_preview_raises_invalid_upload_for_missing_columns():
@@ -71,6 +72,8 @@ def test_process_upload_returns_xlsx_bytes_and_counts():
         config.WITHIN_SHEET,
         config.OUTSIDE_SHEET,
     }
+    assert result["dropped_row_count"] == 0
+    assert result["skipped_row_count"] == 0
 
 
 def test_process_upload_xlsx_bytes_load_with_openpyxl(tmp_path):
@@ -123,11 +126,14 @@ def test_process_upload_without_on_stage_behaves_unchanged():
     assert result["xlsx_bytes"][:2] == b"PK"
 
 
-def test_process_upload_propagates_pipeline_value_errors():
+def test_process_upload_skips_rows_with_malformed_receive_date_and_reports_count():
     bad_csv = (
-        ",".join(config.COLUMNS_TO_KEEP) + "\n"
-        + "Acme,1/1/2026,PO1,1/5/2026,INV1,1/10/2026,NOT-A-DATE,100.00,IT,TLC1,Jane,Doe\n"
+        ",".join(config.COLUMNS_TO_KEEP) + "\r\n"
+        + "Acme,1/1/2026,PO1,1/5/2026,INV1,1/10/2026,NOT-A-DATE,100.00,IT,TLC1,Jane,Doe\r\n"
     ).encode(config.ENCODING)
 
-    with pytest.raises(ValueError):
-        process_upload(bad_csv)
+    result = process_upload(bad_csv)
+
+    assert result["xlsx_bytes"][:2] == b"PK"
+    assert result["skipped_row_count"] == 1
+    assert sum(result["counts"].values()) == 0

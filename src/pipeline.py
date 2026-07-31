@@ -25,8 +25,8 @@ def run(src: Path = config.RAW_DATA_PATH, dst: Path = config.OUTPUT_PATH) -> dic
         )
 
     with log_stage(logger, f"full pipeline run ({src.name} -> {dst.name})"):
-        raw_header, raw_rows = load_and_clean_rows(src)
-        header, rows = build_trimmed_rows(raw_header, raw_rows)
+        raw_header, raw_rows, dropped_row_count = load_and_clean_rows(src)
+        header, rows, skipped_row_count = build_trimmed_rows(raw_header, raw_rows)
         sheets = split_by_reporting_period(header, rows)
         wb, text_column_letters_by_sheet, slicer_info_by_sheet = build_workbook(header, sheets)
 
@@ -34,6 +34,12 @@ def run(src: Path = config.RAW_DATA_PATH, dst: Path = config.OUTPUT_PATH) -> dic
         save_workbook(wb, text_column_letters_by_sheet, slicer_info_by_sheet, dst)
 
         logger.info("Written to: %s", dst)
+        excluded_row_count = dropped_row_count + skipped_row_count
+        if excluded_row_count:
+            logger.warning(
+                "Total rows excluded from this run: %d (see warnings above for detail)",
+                excluded_row_count,
+            )
         counts = {}
         for sheet_name, sheet_rows in sheets.items():
             logger.info("  %s: %d rows", sheet_name, len(sheet_rows))
