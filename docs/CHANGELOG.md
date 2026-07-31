@@ -5,6 +5,19 @@ style of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Deployed the Web UI to Streamlit Community Cloud (see
+  [README.md#deployment](../README.md#deployment) for the app URL, deploy
+  config, and gotchas hit along the way).
+- Re-added `requirements.txt` (`-e .[app]`), removed in 0.2.0 in favor of
+  `pyproject.toml`. `pyproject.toml` remains the source of dependency
+  truth; this is a one-line install shim Community Cloud requires since it
+  only runs `pip install -r requirements.txt` and never installs the
+  project itself from `pyproject.toml` directly. See
+  [README.md#requirementstxt](../README.md#requirementstxt) for why a plain
+  dependency list (the first attempt) isn't sufficient.
+
 ### Changed
 
 - `python main.py` with no arguments now launches the Streamlit web UI by

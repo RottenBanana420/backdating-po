@@ -38,6 +38,7 @@ backdating-po/
 │                                  # default, or runs the CLI pipeline
 │                                  # directly when given --input/--output
 ├── pyproject.toml                # package metadata + dependencies
+├── requirements.txt               # Streamlit Community Cloud install shim (see Deployment)
 ├── LICENSE                       # Apache 2.0
 ├── .github/workflows/ci.yml      # CI: pytest on Python 3.10-3.12
 ├── src/
@@ -141,6 +142,74 @@ inherently a styled, two-sheet workbook with a Slicer — a flat CSV would
 lose the within/outside split and all formatting that make the report
 useful to an auditor, so `.xlsx` is the one, obvious download rather than
 adding an unrequested CSV export alongside it.
+
+## Deployment
+
+The Web UI is deployed on [Streamlit Community Cloud](https://share.streamlit.io):
+
+- **App URL:** https://backdating-po-lbkihwaovzjpqlrm8szlbe.streamlit.app
+- **Source repo:** private (`RottenBanana420/backdating-po`) — the app's own
+  sharing setting is public, so coworkers can open and use the URL directly
+  without GitHub access or a Streamlit account. Repo privacy and app
+  sharing are independent settings; either can be changed later (Settings →
+  Sharing on the app, or the repo's visibility on GitHub) without breaking
+  the deployment.
+- **Deploy config:** repo `RottenBanana420/backdating-po`, branch `main`,
+  main file path `src/app.py` (not `main.py` — Community Cloud runs the
+  Streamlit script directly, and `main.py` only launches Streamlit via a
+  `subprocess` call that doesn't work in that sandbox).
+- **Redeploys automatically** on every push to `main`. No manual redeploy
+  step needed.
+- **Managing the app:** click **Manage app** (bottom-right corner while
+  viewing it) for live logs, manual reboot, or resource usage — useful if
+  it errors or you need to debug a deploy.
+
+### `requirements.txt`
+
+Re-added specifically for this deployment, after being deliberately removed
+in [0.2.0](docs/CHANGELOG.md#020---2026-07-30) in favor of `pyproject.toml`
+as the single source of dependency truth. `pyproject.toml` is still that
+source of truth — `requirements.txt` is a one-line shim, not a duplicate
+dependency list:
+
+```
+-e .[app]
+```
+
+Community Cloud only runs `pip install -r requirements.txt`; it does not
+install the project itself from `pyproject.toml`. Without this file (or
+with a plain `streamlit`/`openpyxl` list in it, which was the first attempt),
+`streamlit` and `openpyxl` would be present but this repo's own `src`
+package would not be — `src/app.py`'s `from src import config` then fails
+with `ModuleNotFoundError` on Cloud, even though it works locally (where
+`pip install -e ".[dev,app]"` already registered `src` as importable).
+The editable install above installs the project (registering `src`) and its
+`app` extra (`streamlit`) in one step. If `pyproject.toml`'s dependencies or
+`app` extra ever change, no edit to `requirements.txt` is needed — a push
+is enough to trigger Cloud's reinstall.
+
+### Private-repo deploy gotcha
+
+Deploying from a private repo needs GitHub's `repo` OAuth scope, which
+Streamlit's default "Sign in with GitHub" link does **not** request (it only
+asks for public-repo access). If the deploy form shows "This repository
+does not exist" for a private repo you own, the fix is to find Streamlit's
+separate private-repo authorization link (near the Repository field on the
+deploy form, or under the workspace's GitHub connection settings) and accept
+the GitHub prompt that lists **private repositories** under its Repositories
+permission — not the general sign-in prompt, which only ever offers public
+access no matter how many times it's re-accepted.
+
+### Free-tier limits to expect
+
+- Apps with no traffic for 12h go to sleep; the next visitor sees a
+  "wake up" screen (~30-60s to restart). Not a bug if a coworker reports
+  the app "not loading" after a quiet period.
+- ~1GB memory, fractional shared CPU. Fine for normal CSV-sized PO exports;
+  watch for a resource-limit error on unusually large files.
+- Only **one** private-repo-backed app allowed at a time on the free tier.
+- No custom domain on the free tier — the `*.streamlit.app` URL above is
+  permanent unless the app is deleted/recreated.
 
 ## Testing
 
