@@ -43,11 +43,11 @@ def save_workbook(wb, text_column_letters_by_sheet, slicer_info_by_sheet, dst):
         target = rid_to_target[name_to_rid[sheet_name]].lstrip("/")
         sheet_path_by_name[sheet_name] = target if target.startswith("xl/") else f"xl/{target}"
 
-    for sheet_name, (text_column_letters, last_row) in text_column_letters_by_sheet.items():
+    for sheet_name, (text_column_letters, data_start_row, last_row) in text_column_letters_by_sheet.items():
         sheet_path = sheet_path_by_name[sheet_name]
 
         ignored_errors_xml = "<ignoredErrors>" + "".join(
-            f'<ignoredError sqref="{letter}2:{letter}{last_row}" numberStoredAsText="1"/>'
+            f'<ignoredError sqref="{letter}{data_start_row}:{letter}{last_row}" numberStoredAsText="1"/>'
             for letter in text_column_letters
         ) + "</ignoredErrors>"
 

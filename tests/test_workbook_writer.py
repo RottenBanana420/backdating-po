@@ -47,7 +47,7 @@ def test_save_workbook_adds_ignored_errors_for_text_columns(tmp_path):
     assert sheet_xml.count("<ignoredError ") == len(TEXT_COLUMNS)
     for col_name in TEXT_COLUMNS:
         letter = get_column_letter(HEADER.index(col_name) + 1)
-        assert f'sqref="{letter}2:{letter}3" numberStoredAsText="1"' in sheet_xml
+        assert f'sqref="{letter}3:{letter}4" numberStoredAsText="1"' in sheet_xml
 
 
 def test_save_workbook_writes_to_the_exact_destination_path(tmp_path):

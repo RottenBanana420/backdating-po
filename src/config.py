@@ -29,3 +29,8 @@ HIGHLIGHT_COLUMNS = ["tlc", "receive_date"]
 
 WITHIN_SHEET = "POs Within Reporting Month"
 OUTSIDE_SHEET = "POs Outside Reporting Month"
+
+# Titles shown merged/centered above each sheet's table - distinct from the
+# tab names above, which stay unchanged.
+WITHIN_TITLE = "POs Received Within Reporting Month"
+OUTSIDE_TITLE = "POs Received Outside Reporting Month"

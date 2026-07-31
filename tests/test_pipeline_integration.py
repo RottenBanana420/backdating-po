@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 from src.pipeline import run
 
@@ -20,7 +21,7 @@ def test_pipeline_end_to_end(tmp_path):
     assert set(wb.sheetnames) <= {"POs Within Reporting Month", "POs Outside Reporting Month"}
     for name in wb.sheetnames:
         ws = wb[name]
-        assert ws.cell(row=1, column=1).value == "reporting_month"
+        assert ws.cell(row=2, column=1).value == "reporting_month"
 
 
 def test_pipeline_raises_clear_error_for_missing_input(tmp_path):
@@ -40,7 +41,7 @@ def test_pipeline_handles_all_rows_dropped_without_crashing(tmp_path):
     wb = load_workbook(dst)
     for sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
-        assert ws.max_row == 1  # header row only, no data rows
+        assert ws.max_row == 2  # title row + header row only, no data rows
 
 
 def test_pipeline_creates_missing_output_parent_directories(tmp_path):
@@ -60,3 +61,18 @@ def test_pipeline_forwards_on_progress_to_workbook_build(tmp_path):
     assert calls, "on_progress should fire at least once (the initial (0, total) call)"
     assert calls[0][0] == 0
     assert calls[-1][0] == calls[-1][1] == sum(counts.values())
+
+
+def test_pipeline_writes_merged_title_row_above_header(tmp_path):
+    dst = tmp_path / "out.xlsx"
+    run(src=FIXTURE, dst=dst)
+
+    wb = load_workbook(dst)
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        assert ws.cell(row=1, column=1).value in {
+            "POs Received Within Reporting Month",
+            "POs Received Outside Reporting Month",
+        }
+        last_col_letter = get_column_letter(ws.max_column)
+        assert f"A1:{last_col_letter}1" in {str(r) for r in ws.merged_cells.ranges}

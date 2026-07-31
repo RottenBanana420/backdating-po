@@ -11,7 +11,7 @@ from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
 
-from ..config import HIGHLIGHT_COLUMNS, TEXT_COLUMNS
+from ..config import HIGHLIGHT_COLUMNS, OUTSIDE_SHEET, OUTSIDE_TITLE, TEXT_COLUMNS, WITHIN_SHEET, WITHIN_TITLE
 from ..logging_config import log_stage
 from ..transform import parse_reporting_month, to_date_only
 from .styles import (
@@ -29,9 +29,21 @@ from .styles import (
     MAX_COLUMN_WIDTH,
     MIN_COLUMN_WIDTH,
     MONTH_FILL_COLORS,
+    TITLE_ALIGNMENT,
+    TITLE_FONT,
 )
 
 logger = logging.getLogger(__name__)
+
+# Row layout: a merged title row, then the column header row, then data -
+# named here so every row-position reference below (the Table's ref, the
+# ignoredErrors sqref workbook_writer.py patches in) stays in lockstep if
+# this layout ever changes again.
+TITLE_ROW = 1
+HEADER_ROW = 2
+DATA_START_ROW = 3
+
+SHEET_TITLES = {WITHIN_SHEET: WITHIN_TITLE, OUTSIDE_SHEET: OUTSIDE_TITLE}
 
 # Leading characters that Excel (and openpyxl) treat as formula triggers -
 # OWASP's CSV Injection guidance: https://owasp.org/www-community/attacks/CSV_Injection
@@ -109,9 +121,9 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
     # left-aligned so Excel doesn't auto-detect them and re-flag them.
     text_format_indices = {reporting_month_idx} | {header.index(c) for c in TEXT_COLUMNS}
 
-    # sheet_name -> (text_column_letters, last_row), needed to re-patch the
-    # "Number Stored as Text" ignoredErrors block after save (openpyxl does
-    # not serialize it).
+    # sheet_name -> (text_column_letters, data_start_row, last_row), needed
+    # to re-patch the "Number Stored as Text" ignoredErrors block after save
+    # (openpyxl does not serialize it).
     text_column_letters_by_sheet = {}
     # sheet_name -> SheetSlicerTarget-ish info, needed to patch in a real
     # reporting_month Slicer after save (openpyxl can't create one itself -
@@ -135,7 +147,7 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
             )
             for row in data_rows
         ]
-        last_row = len(data_rows) + 1
+        last_row = len(data_rows) + HEADER_ROW
 
         # Column widths (auto-sized to each column's longest value) and
         # freeze_panes both precede the cell data in the worksheet XML, so
@@ -154,7 +166,20 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
             ws.column_dimensions[col_letter].width = max(
                 MIN_COLUMN_WIDTH, min(longest + 2, MAX_COLUMN_WIDTH)
             )
-        ws.freeze_panes = "A2"
+        ws.freeze_panes = f"A{DATA_START_ROW}"
+
+        # Title row: merged across every table column and centered, styled
+        # distinctly from the header row below it so it clearly reads as a
+        # title rather than a second header. write_only worksheets have no
+        # add_table-style merge_cells() (it dereferences ws._cells, which a
+        # streaming worksheet never populates), so the merge range is added
+        # directly to ws.merged_cells - the writer only ever reads that
+        # collection back out to emit <mergeCells>, nothing else touches it.
+        title_cell = WriteOnlyCell(ws, value=SHEET_TITLES.get(sheet_name, sheet_name))
+        title_cell.font = TITLE_FONT
+        title_cell.alignment = TITLE_ALIGNMENT
+        ws.append([title_cell, *([None] * (len(header) - 1))])
+        ws.merged_cells.add(f"A{TITLE_ROW}:{get_column_letter(len(header))}{TITLE_ROW}")
 
         # Header row: bold/centered/grey, with tlc/receive_date called out
         # in the accent color.
@@ -214,12 +239,13 @@ def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFA
         _report_progress()
 
         text_column_letters = [get_column_letter(header.index(c) + 1) for c in TEXT_COLUMNS]
-        text_column_letters_by_sheet[ws.title] = (text_column_letters, last_row)
+        text_column_letters_by_sheet[ws.title] = (text_column_letters, DATA_START_ROW, last_row)
 
         # Real Excel Table backing the reporting_month Slicer added below.
         # No built-in style/banding, so it doesn't fight with the month
-        # shading and header styling already applied above.
-        table_ref = f"A1:{get_column_letter(len(header))}{last_row}"
+        # shading and header styling already applied above. Starts at the
+        # header row, one below the title row above it.
+        table_ref = f"A{HEADER_ROW}:{get_column_letter(len(header))}{last_row}"
         table = Table(
             id=table_id,
             displayName=f"Table{table_id}",

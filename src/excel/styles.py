@@ -44,5 +44,11 @@ HEADER_FONT = Font(bold=True, color="000000")
 HEADER_BORDER = Border(bottom=Side(style="thin", color="808080"))
 HEADER_ALIGNMENT = Alignment(horizontal="center", vertical="center")
 
+# Sheet title (merged across the table's columns, row above the header) -
+# deliberately distinct from HEADER_FONT/HEADER_FILL so it reads as a title
+# rather than an extra header row: larger, no fill.
+TITLE_FONT = Font(bold=True, size=14, color=ACCENT_COLOR)
+TITLE_ALIGNMENT = Alignment(horizontal="center", vertical="center")
+
 MIN_COLUMN_WIDTH = 10
 MAX_COLUMN_WIDTH = 40
