@@ -1,5 +1,7 @@
 # backdating-po
 
+[![CI](https://github.com/RottenBanana420/backdating-po/actions/workflows/ci.yml/badge.svg)](https://github.com/RottenBanana420/backdating-po/actions/workflows/ci.yml)
+
 Builds a styled Excel report that flags purchase orders (POs) received in a
 different calendar month than the transaction-log-confirmation (TLC) date
 on file — the discrepancy an auditor cares about when checking for
@@ -141,6 +143,5 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## Roadmap
 
-- CI (lint + `pytest`) on push/PR.
 - Configurable column list (currently hardcoded business rule in `config.py`).
 - Optional CSV output alongside the styled `.xlsx`, for non-Excel consumers.
