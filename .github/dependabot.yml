@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Project dependencies declared via PEP 621 in pyproject.toml
+  # (dependencies, dev/app optional-dependencies).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      # Minor/patch bumps (including security patches) land together in one
+      # PR. Major bumps stay ungrouped so each gets its own PR and review -
+      # e.g. a streamlit 2.x release shouldn't be able to merge unreviewed.
+      python-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Actions pinned by tag in .github/workflows/*.yml (actions/checkout,
+  # actions/setup-python, ruff-action, gh-action-pip-audit).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

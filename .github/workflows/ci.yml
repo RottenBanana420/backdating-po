@@ -31,3 +31,34 @@ jobs:
       - run: pip install -e ".[dev,app]"
 
       - run: pytest -v
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/ruff-action@v4.1.0
+        with:
+          version: "0.16.1"
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Upgrade pip first: an outdated pip in the runner's own environment
+      # otherwise shows up as a false-positive vulnerability finding below,
+      # since pip-audit scans every installed distribution, not just the
+      # project's declared dependencies.
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev,app]"
+
+      # No `inputs:` -> defaults to "pip list source" mode, auditing the
+      # exact versions installed above (including the dev/app extras),
+      # rather than pip-audit's own independent resolution of pyproject.toml.
+      - uses: pypa/gh-action-pip-audit@v1.1.0

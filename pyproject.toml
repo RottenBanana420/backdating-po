@@ -12,9 +12,14 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "ruff>=0.16,<0.17",
+    "pip-audit>=2.7",
 ]
 app = [
-    "streamlit>=1.38,<2",
+    # Floor is the oldest 1.x actually verified against tests/test_app.py's
+    # AppTest smoke test (bumped from 1.38 after confirming 1.60 passes);
+    # Dependabot + CI keep this floor from silently drifting out of date.
+    "streamlit>=1.60,<2",
 ]
 
 [build-system]
@@ -26,3 +31,20 @@ include = ["src", "src.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 110
+
+[tool.ruff.lint]
+# E/F: pycodestyle+pyflakes core; I: import sorting; UP: pyupgrade; B: bugbear;
+# C4: comprehensions; SIM: simplify; RUF: ruff-native checks. DTZ and the
+# pylint (PL) longtail are intentionally excluded: this app works entirely
+# with naive local calendar dates for PO receipts, so tz-aware datetimes are
+# not meaningful, and PL's ruleset is broader/noisier than the "cheap gate"
+# this project wants.
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+# E501 (line-too-long) is intentionally off: several lines are atomic XML
+# fragments or user-facing message strings that don't benefit from wrapping,
+# and this project has no line-wrapping formatter to make the limit enforceable.
+ignore = ["E501"]
