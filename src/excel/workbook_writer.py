@@ -3,13 +3,19 @@ write itself: the "Number Stored as Text" ignoredErrors block, and the
 reporting_month Slicer (see excel_slicers.py for why the latter needs
 hand-authored XML).
 """
+import logging
 import re
 import zipfile
 
 from .excel_slicers import SheetSlicerTarget, add_reporting_month_slicers
+from ..logging_config import log_stage
+
+logger = logging.getLogger(__name__)
 
 
+@log_stage(logger, "save workbook and patch XML (ignoredErrors, slicers)")
 def save_workbook(wb, text_column_letters_by_sheet, slicer_info_by_sheet, dst):
+    logger.debug("Writing workbook to %s (%d sheet(s))", dst, len(wb.sheetnames))
     wb.save(dst)
 
     with zipfile.ZipFile(dst, "r") as zin:

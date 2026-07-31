@@ -37,6 +37,8 @@ def test_load_and_clean_rows_drops_rows_with_unrecoverable_field_count(caplog):
     assert header == ["a", "b", "c", "d", "e"]
     assert rows == [["11", "12", "13", "14", "15"]]
     assert "Rows still misaligned after fix: 1" in caplog.text
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
 
 
 def test_load_and_clean_rows_raises_cleanly_on_non_cp1252_bytes(tmp_path):

@@ -3,12 +3,15 @@ bucket, sorted and shaded by reporting_month, with tlc/receive_date
 highlighted and a real Excel Table (backing the Slicer added later by
 workbook_writer.save_workbook).
 """
+import logging
+
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
 
 from ..config import HIGHLIGHT_COLUMNS, TEXT_COLUMNS
+from ..logging_config import log_stage
 from .styles import (
     HEADER_ALIGNMENT,
     HEADER_BORDER,
@@ -27,7 +30,13 @@ from .styles import (
 )
 from ..transform import parse_reporting_month, to_date_only
 
+logger = logging.getLogger(__name__)
 
+
+# log_stage is built on contextlib.contextmanager, which Python allows to
+# double as a decorator - used that way here instead of a `with` block so
+# this ~100-line function body doesn't need an extra indent level.
+@log_stage(logger, "build styled workbook (shading, headers, tables)")
 def build_workbook(header, sheets):
     wb = Workbook()
     wb.remove(wb.active)
@@ -45,6 +54,7 @@ def build_workbook(header, sheets):
     slicer_info_by_sheet = {}
 
     for table_id, (sheet_name, rows) in enumerate(sheets.items(), start=1):
+        logger.debug("Building sheet %r: %d row(s)", sheet_name, len(rows))
         ws = wb.create_sheet(sheet_name)
         ws.append(list(header))
 
