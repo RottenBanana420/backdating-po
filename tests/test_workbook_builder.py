@@ -1,7 +1,14 @@
 from openpyxl import load_workbook
 
 from src.config import COLUMNS_TO_KEEP, HIGHLIGHT_COLUMNS, OUTSIDE_SHEET, WITHIN_SHEET
-from src.excel.styles import HIGHLIGHT_BORDER, HIGHLIGHT_FILL, HIGHLIGHT_FONT, MONTH_FILL_COLORS
+from src.excel.styles import (
+    HIGHLIGHT_BORDER,
+    HIGHLIGHT_FILL,
+    HIGHLIGHT_FONT,
+    MAX_COLUMN_WIDTH,
+    MIN_COLUMN_WIDTH,
+    MONTH_FILL_COLORS,
+)
 from src.excel.workbook_builder import build_workbook
 
 HEADER = ["reporting_month", *COLUMNS_TO_KEEP]
@@ -113,6 +120,25 @@ def test_build_workbook_leaves_ordinary_text_untouched(tmp_path):
 
     assert ws.cell(row=2, column=HEADER.index("vend") + 1).value == "Acme Co"
     assert ws.cell(row=2, column=HEADER.index("po") + 1).value == "PO123"
+
+
+def test_build_workbook_sizes_columns_to_longest_value(tmp_path):
+    rows = [
+        _row(vend="Acme Co"),
+        _row(vend="A Very Long Vendor Name That Exceeds The Max Width By A Lot"),
+    ]
+
+    wb, _, _ = _build_and_reload(tmp_path, {WITHIN_SHEET: rows})
+    ws = wb[WITHIN_SHEET]
+
+    vend_letter = ws.cell(row=1, column=HEADER.index("vend") + 1).column_letter
+    dept_letter = ws.cell(row=1, column=HEADER.index("dept") + 1).column_letter
+
+    # Longest "vend" value (60 chars) + 2 padding clamps to MAX_COLUMN_WIDTH.
+    assert ws.column_dimensions[vend_letter].width == MAX_COLUMN_WIDTH
+    # "dept" values ("IT") are shorter than the header itself, so width
+    # falls back to MIN_COLUMN_WIDTH rather than shrinking further.
+    assert ws.column_dimensions[dept_letter].width == MIN_COLUMN_WIDTH
 
 
 def test_build_workbook_handles_empty_bucket_without_error(tmp_path):

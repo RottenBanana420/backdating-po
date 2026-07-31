@@ -107,12 +107,17 @@ def build_workbook(header, sheets):
         # Column widths (auto-sized to each column's longest value) and
         # freeze_panes both precede the cell data in the worksheet XML, so
         # write-only mode requires setting them before any row is appended.
-        for col_idx, col_name in enumerate(header, start=1):
+        # A single pass over data_rows tracking a running max per column
+        # avoids one full O(rows) rescan per column.
+        longest_by_col = [len(str(col_name)) for col_name in header]
+        for row in data_rows:
+            for col_idx, value in enumerate(row):
+                if value is not None:
+                    value_len = len(str(value))
+                    if value_len > longest_by_col[col_idx]:
+                        longest_by_col[col_idx] = value_len
+        for col_idx, longest in enumerate(longest_by_col, start=1):
             col_letter = get_column_letter(col_idx)
-            longest = max(
-                [len(str(col_name))]
-                + [len(str(row[col_idx - 1])) for row in data_rows if row[col_idx - 1] is not None]
-            )
             ws.column_dimensions[col_letter].width = max(
                 MIN_COLUMN_WIDTH, min(longest + 2, MAX_COLUMN_WIDTH)
             )
