@@ -31,6 +31,20 @@ include = ["src", "src.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    # openpyxl's reader doesn't recognize the hand-authored Slicer <extLst>
+    # extension excel_slicers.py writes (openpyxl has no write *or* read
+    # support for Slicers - see excel_slicers.py's module docstring). Tests
+    # that re-open a slicer-patched .xlsx with load_workbook() to prove the
+    # patch didn't corrupt the file trigger this warning every time; it's
+    # expected, not a bug, so it's silenced by its exact message rather than
+    # broadly - any other UserWarning still surfaces normally.
+    "ignore:Unknown extension is not supported and will be removed:UserWarning",
+    # write_only worksheets have no _get_cell, so Worksheet.add_table always
+    # warns that table columns must be added manually - which build_workbook
+    # already does explicitly via TableColumn(...) above. Expected, not a bug.
+    "ignore:In write-only mode you must add table columns manually:UserWarning",
+]
 
 [tool.ruff]
 target-version = "py310"
