@@ -14,14 +14,14 @@ backdated POs.
   same-date rows (nothing to flag there).
 - Produces a single `.xlsx` with per-month row shading, highlighted
   TLC/receive-date columns, and a working **Slicer** on `reporting_month`
-  (openpyxl can't write slicers itself — see [ARCHITECTURE.md](ARCHITECTURE.md)
+  (openpyxl can't write slicers itself — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
   for how this tool does it anyway).
 - Runs end-to-end in memory: one CSV in, one `.xlsx` out, no intermediate
   files written to disk.
 
 ## Architecture
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full pipeline breakdown,
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full pipeline breakdown,
 design decisions, and data flow. In short:
 
 ```
@@ -48,6 +48,10 @@ backdating-po/
 │   ├── raw/                      # put your real raw_data.csv here (gitignored)
 │   ├── sample/                   # synthetic demo dataset (tracked)
 │   └── output/                   # generated report lands here (gitignored)
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── CONTRIBUTING.md
+│   └── CHANGELOG.md
 └── tests/                        # pytest suite
 ```
 
@@ -124,11 +128,15 @@ and checks the resulting workbook's structure.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
 ## License
 
 [Apache License 2.0](LICENSE).
+
+## Changelog
+
+See [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## Roadmap
 
