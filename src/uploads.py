@@ -15,7 +15,7 @@ from pathlib import Path
 from .config import COLUMNS_TO_KEEP, OUTSIDE_SHEET, WITHIN_SHEET
 from .csv_loader import load_and_clean_rows
 from .pipeline import run as run_pipeline
-from .transform import build_trimmed_rows, split_by_reporting_period
+from .transform import build_trimmed_rows, format_report_filename, split_by_reporting_period
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +82,8 @@ def process_upload(
 
     Returns a dict with:
       - xlsx_bytes: the generated report as bytes, ready for download
+      - filename: suggested download filename, "Backdating POs {start}-{end}.xlsx"
+        with start/end derived from the data's earliest/latest reporting months
       - counts: {sheet_name: row_count} from pipeline.run()
       - header: the trimmed output columns (reporting_month + business columns)
       - preview_sheets: {sheet_name: rows[:preview_limit]} for on-screen preview
@@ -117,7 +119,7 @@ def process_upload(
         validate_columns(raw_header)
 
         _notify("preparing")
-        header, rows, skipped_row_count = build_trimmed_rows(raw_header, raw_rows)
+        header, rows, skipped_row_count, month_bounds = build_trimmed_rows(raw_header, raw_rows)
         sheets = split_by_reporting_period(header, rows)
 
         _notify("building_report")
@@ -132,6 +134,7 @@ def process_upload(
 
     return {
         "xlsx_bytes": xlsx_bytes,
+        "filename": format_report_filename(month_bounds),
         "counts": counts,
         "header": header,
         "preview_sheets": {

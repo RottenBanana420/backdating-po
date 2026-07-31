@@ -76,6 +76,26 @@ def test_process_upload_returns_xlsx_bytes_and_counts():
     assert result["skipped_row_count"] == 0
 
 
+def test_process_upload_returns_dynamic_filename_derived_from_data():
+    # sample_raw_data.csv's receive_date values span January-April 2026.
+    csv_bytes = SAMPLE.read_bytes()
+
+    result = process_upload(csv_bytes)
+
+    assert result["filename"] == "Backdating POs 1.1.26-5.1.26.xlsx"
+
+
+def test_process_upload_falls_back_to_default_filename_when_no_valid_rows():
+    bad_csv = (
+        ",".join(config.COLUMNS_TO_KEEP) + "\r\n"
+        + "Acme,1/1/2026,PO1,1/5/2026,INV1,1/10/2026,NOT-A-DATE,100.00,IT,TLC1,Jane,Doe\r\n"
+    ).encode(config.ENCODING)
+
+    result = process_upload(bad_csv)
+
+    assert result["filename"] == "po_reporting_periods.xlsx"
+
+
 def test_process_upload_xlsx_bytes_load_with_openpyxl(tmp_path):
     csv_bytes = SAMPLE.read_bytes()
 

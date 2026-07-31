@@ -4,6 +4,7 @@ import pytest
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
+from src import config
 from src.pipeline import run
 
 FIXTURE = Path(__file__).parent.parent / "data" / "sample" / "sample_raw_data.csv"
@@ -76,3 +77,21 @@ def test_pipeline_writes_merged_title_row_above_header(tmp_path):
         }
         last_col_letter = get_column_letter(ws.max_column)
         assert f"A1:{last_col_letter}1" in {str(r) for r in ws.merged_cells.ranges}
+
+
+def test_pipeline_computes_default_output_filename_from_data(tmp_path, monkeypatch):
+    # sample_raw_data.csv's receive_date values span January-April 2026.
+    monkeypatch.setattr(config, "OUTPUT_DIR", tmp_path)
+
+    run(src=FIXTURE)
+
+    assert (tmp_path / "Backdating POs 1.1.26-5.1.26.xlsx").exists()
+
+
+def test_pipeline_explicit_dst_overrides_computed_filename(tmp_path):
+    dst = tmp_path / "my_custom_name.xlsx"
+
+    run(src=FIXTURE, dst=dst)
+
+    assert dst.exists()
+    assert not any(tmp_path.glob("Backdating POs*"))

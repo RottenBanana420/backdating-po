@@ -19,6 +19,11 @@ def build_trimmed_rows(header, rows):
 
         out_rows = []
         bad_rows = []
+        # Tracked in this same pass (rather than rescanned from out_rows
+        # afterwards) so the report's date-ranged output filename costs
+        # nothing extra beyond two comparisons per already-visited row.
+        min_month = None
+        max_month = None
         for i, row in enumerate(rows, start=1):
             try:
                 receive_date = datetime.strptime(row[col_idx["receive_date"]], "%m/%d/%Y %H:%M:%S")
@@ -38,13 +43,18 @@ def build_trimmed_rows(header, rows):
                 bad_rows.append((i, exc))
                 continue
             out_rows.append(new_row)
+            year_month = (receive_date.year, receive_date.month)
+            if min_month is None or year_month < min_month:
+                min_month = year_month
+            if max_month is None or year_month > max_month:
+                max_month = year_month
 
         if bad_rows:
             logger.warning("Rows skipped due to unparseable field values: %d (dropped)", len(bad_rows))
             for i, exc in bad_rows[:20]:
                 logger.debug("  row %d: %s", i, exc)
 
-    return output_columns, out_rows, len(bad_rows)
+    return output_columns, out_rows, len(bad_rows), (min_month, max_month)
 
 
 def parse_date(value):
@@ -81,6 +91,37 @@ def split_by_reporting_period(header, rows):
         logger.info("%s: %d rows", OUTSIDE_SHEET, len(outside_rows))
 
     return {WITHIN_SHEET: within_rows, OUTSIDE_SHEET: outside_rows}
+
+
+DEFAULT_REPORT_FILENAME = "po_reporting_periods.xlsx"
+
+
+def _next_month(year_month):
+    year, month = year_month
+    return (year + 1, 1) if month == 12 else (year, month + 1)
+
+
+def format_report_filename(month_bounds):
+    """Builds the "Backdating POs {start}-{end}.xlsx" output filename from
+    `month_bounds` (the (min_month, max_month) tuple `build_trimmed_rows`
+    returns, each a (year, month) pair or None if there were no valid rows).
+
+    `start` is the 1st of the earliest reporting month in the data; `end` is
+    the 1st of the month *after* the latest reporting month - since this
+    report runs monthly, a single-month file spans exactly that one month
+    (e.g. reporting month July 2025 alone -> "7.1.25-8.1.25"), and a file
+    covering several months' worth of data spans from the first to one past
+    the last (e.g. July 2025 through June 2026 -> "7.1.25-7.1.26").
+    """
+    min_month, max_month = month_bounds
+    if min_month is None or max_month is None:
+        return DEFAULT_REPORT_FILENAME
+
+    start_year, start_mo = min_month
+    end_year, end_mo = _next_month(max_month)
+    start = f"{start_mo}.1.{start_year % 100:02d}"
+    end = f"{end_mo}.1.{end_year % 100:02d}"
+    return f"Backdating POs {start}-{end}.xlsx"
 
 
 def parse_reporting_month(value):

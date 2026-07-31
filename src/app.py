@@ -289,7 +289,7 @@ if st.session_state.result:
         st.download_button(
             "Download report (.xlsx)",
             data=result["xlsx_bytes"],
-            file_name="po_reporting_periods.xlsx",
+            file_name=result["filename"],
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             icon=":material/download:",
             help="Downloads the full, formatted report - not just the preview rows shown above.",

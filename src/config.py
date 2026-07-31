@@ -7,7 +7,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DATA_PATH = ROOT / "data" / "raw" / "raw_data.csv"
-OUTPUT_PATH = ROOT / "data" / "output" / "po_reporting_periods.xlsx"
+OUTPUT_DIR = ROOT / "data" / "output"
+# Fallback name used only when no valid row exists to derive a date range
+# from (see transform.format_report_filename) - the normal case is a
+# dynamically dated "Backdating POs {start}-{end}.xlsx" filename.
+OUTPUT_PATH = OUTPUT_DIR / "po_reporting_periods.xlsx"
 ENCODING = "cp1252"
 
 COLUMNS_TO_KEEP = [

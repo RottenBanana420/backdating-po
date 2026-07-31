@@ -23,7 +23,16 @@ logger = logging.getLogger(__name__)
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=config.RAW_DATA_PATH, help="Path to the raw PO CSV.")
-    parser.add_argument("--output", type=Path, default=config.OUTPUT_PATH, help="Path to write the report .xlsx to.")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help=(
+            "Path to write the report .xlsx to. If omitted, defaults to "
+            "data/output/Backdating POs {start}-{end}.xlsx, with the dates "
+            "derived from the data's earliest/latest reporting months."
+        ),
+    )
     return parser.parse_args(argv)
 
 
