@@ -208,7 +208,7 @@ def add_reporting_month_slicers(contents, targets):
         # Worksheet element order (ECMA-376): ignoredErrors, drawing,
         # tableParts, extLst - openpyxl already wrote <tableParts> in the
         # right place, so anchoring on it keeps <drawing> correctly ordered
-        # before it and lets 04_format_report.py's own ignoredErrors patch
+        # before it and lets build_report.py's own ignoredErrors patch
         # (applied via the same anchor) land before <drawing> too.
         # openpyxl's own root <worksheet> element doesn't declare xmlns:r
         # (it's declared locally on individual elements like <tablePart>
