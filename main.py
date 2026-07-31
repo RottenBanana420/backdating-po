@@ -1,17 +1,21 @@
-"""CLI entry point for the PO reporting pipeline.
+"""Entry point for the PO reporting pipeline.
 
 Usage:
-    python main.py                                            # uses data/raw/raw_data.csv
-    python main.py --input data/sample/sample_raw_data.csv     # run the demo dataset
+    python main.py                                            # launches the Streamlit web UI
+    python main.py --input data/sample/sample_raw_data.csv     # run the pipeline directly (no UI)
     python main.py --input path/to.csv --output path/to.xlsx
 """
 import argparse
+import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 
 from src import config
 from src.logging_config import configure
 from src.pipeline import run
+
+APP_PATH = Path(__file__).resolve().parent / "src" / "app.py"
 
 
 def parse_args(argv=None):
@@ -21,7 +25,23 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
+def launch_ui() -> int:
+    if importlib.util.find_spec("streamlit") is None:
+        print(
+            '\nError: streamlit is not installed. Install the "app" extra:\n'
+            '  pip install -e ".[app]"\n',
+            file=sys.stderr,
+        )
+        return 1
+    result = subprocess.run([sys.executable, "-m", "streamlit", "run", str(APP_PATH)])
+    return result.returncode
+
+
 def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv:
+        return launch_ui()
+
     configure()
     args = parse_args(argv)
     try:
