@@ -1,4 +1,45 @@
-venv/
+# --- Real/generated data (never commit) ---
+data/raw/*
+!data/raw/.gitkeep
+data/output/*
+!data/output/.gitkeep
+reference/
+
+# --- Python ---
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+venv/
+.venv/
+env/
+
+# --- Testing / coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# --- Excel lock files ---
 ~$*.xlsx
+~$*.xls
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Env / secrets (none currently used by this project, kept for safety) ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- Internal planning artifacts (not part of the shipped documentation) ---
+docs/superpowers/
