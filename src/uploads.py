@@ -63,6 +63,7 @@ def process_upload(
     csv_bytes: bytes,
     preview_limit: int = 20,
     on_stage: Callable[[str], None] | None = None,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> dict:
     """Runs the full pipeline against uploaded CSV bytes.
 
@@ -71,6 +72,13 @@ def process_upload(
     a UI layer (src/app.py) can show live progress without this module
     importing Streamlit or owning any UI copy. Business-logic callers (the
     CLI, tests) simply omit it and get identical behavior to before.
+
+    `on_progress`, if given, is called with (rows_done, rows_total) several
+    times over the course of the "building_report" stage - that stage alone
+    dominates total runtime on large files, so `on_stage` firing once at its
+    start and then going quiet until it's done makes the UI look frozen for
+    over a minute at 100k+ rows. Passed straight through to
+    pipeline.run/build_workbook, which owns the actual reporting interval.
 
     Returns a dict with:
       - xlsx_bytes: the generated report as bytes, ready for download
@@ -113,7 +121,7 @@ def process_upload(
         sheets = split_by_reporting_period(header, rows)
 
         _notify("building_report")
-        counts = run_pipeline(src=src, dst=dst)
+        counts = run_pipeline(src=src, dst=dst, on_progress=on_progress)
         xlsx_bytes = dst.read_bytes()
         logger.info("Report ready: %d bytes, %d total row(s)", len(xlsx_bytes), sum(counts.values()))
         if dropped_row_count or skipped_row_count:

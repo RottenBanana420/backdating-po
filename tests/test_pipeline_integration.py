@@ -49,3 +49,14 @@ def test_pipeline_creates_missing_output_parent_directories(tmp_path):
     run(src=FIXTURE, dst=dst)
 
     assert dst.exists()
+
+
+def test_pipeline_forwards_on_progress_to_workbook_build(tmp_path):
+    dst = tmp_path / "out.xlsx"
+    calls = []
+
+    counts = run(src=FIXTURE, dst=dst, on_progress=lambda done, total: calls.append((done, total)))
+
+    assert calls, "on_progress should fire at least once (the initial (0, total) call)"
+    assert calls[0][0] == 0
+    assert calls[-1][0] == calls[-1][1] == sum(counts.values())

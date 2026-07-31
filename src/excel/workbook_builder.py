@@ -37,6 +37,16 @@ logger = logging.getLogger(__name__)
 # OWASP's CSV Injection guidance: https://owasp.org/www-community/attacks/CSV_Injection
 FORMULA_INJECTION_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
 
+# openpyxl's write-only mode has no built-in progress hooks (there's nothing
+# to poll - cells stream straight to disk), and the per-cell styling loop
+# below is this pipeline's dominant cost, so without an explicit callback a
+# caller sees one "started" notification and then silence until the whole
+# workbook is done - at 100k rows that's roughly a minute of an apparently
+# frozen UI. Reporting every N rows instead of every row keeps the callback
+# overhead negligible while still giving a UI something to show every couple
+# of seconds.
+DEFAULT_PROGRESS_INTERVAL_ROWS = 2000
+
 TEXT_ALIGNMENT = Alignment(horizontal="left")
 
 
@@ -64,7 +74,15 @@ def _defuse_formula_injection(cell):
 # double as a decorator - used that way here instead of a `with` block so
 # this ~100-line function body doesn't need an extra indent level.
 @log_stage(logger, "build styled workbook (shading, headers, tables)")
-def build_workbook(header, sheets):
+def build_workbook(header, sheets, on_progress=None, progress_interval_rows=DEFAULT_PROGRESS_INTERVAL_ROWS):
+    """`on_progress`, if given, is called with (rows_done, rows_total) - once
+    up front with rows_done=0, every `progress_interval_rows` data rows
+    written, and once more at the end of each sheet so the final call always
+    lands exactly on rows_total rather than drifting past it. rows_total is
+    fixed for the whole build, computed once from `sheets`, so a caller can
+    turn this straight into a 0-1 fraction without tracking sheet counts
+    itself.
+    """
     # write_only streams each row straight to disk instead of materializing
     # every cell as a full-blown openpyxl Cell object in an in-memory grid -
     # at 100k+ rows the per-cell style assignments were ~76% of this
@@ -74,6 +92,15 @@ def build_workbook(header, sheets):
     # appended, and structural, sheet-level properties (column widths,
     # freeze_panes) must be set before the first row goes out.
     wb = Workbook(write_only=True)
+
+    rows_total = sum(len(rows) for rows in sheets.values())
+    rows_done = 0
+
+    def _report_progress():
+        if on_progress is not None:
+            on_progress(rows_done, rows_total)
+
+    _report_progress()
 
     reporting_month_idx = header.index("reporting_month")
     highlight_indices = {header.index(c) for c in HIGHLIGHT_COLUMNS}
@@ -169,6 +196,16 @@ def build_workbook(header, sheets):
                 _defuse_formula_injection(cell)
                 row_cells.append(cell)
             ws.append(row_cells)
+
+            rows_done += 1
+            if rows_done % progress_interval_rows == 0:
+                _report_progress()
+
+        # Flush unconditionally at sheet end: a sheet whose row count isn't a
+        # multiple of progress_interval_rows would otherwise never report its
+        # last few rows, and the very last flush across all sheets is what
+        # brings rows_done to exactly rows_total.
+        _report_progress()
 
         text_column_letters = [get_column_letter(header.index(c) + 1) for c in TEXT_COLUMNS]
         text_column_letters_by_sheet[ws.title] = (text_column_letters, last_row)

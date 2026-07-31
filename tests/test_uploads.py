@@ -118,6 +118,17 @@ def test_process_upload_calls_on_stage_with_expected_stage_sequence():
     assert stages == ["reading", "preparing", "building_report"]
 
 
+def test_process_upload_calls_on_progress_during_building_report():
+    csv_bytes = SAMPLE.read_bytes()
+    calls = []
+
+    result = process_upload(csv_bytes, on_progress=lambda done, total: calls.append((done, total)))
+
+    assert calls, "on_progress should fire at least once (the initial (0, total) call)"
+    assert calls[0][0] == 0
+    assert calls[-1][0] == calls[-1][1] == sum(result["counts"].values())
+
+
 def test_process_upload_without_on_stage_behaves_unchanged():
     csv_bytes = SAMPLE.read_bytes()
 

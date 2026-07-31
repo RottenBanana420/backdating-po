@@ -160,3 +160,51 @@ def test_build_workbook_handles_empty_bucket_without_error(tmp_path):
     assert "Table2" in ws_outside.tables
     assert OUTSIDE_SHEET in text_cols
     assert OUTSIDE_SHEET in slicer_info
+
+
+def test_build_workbook_reports_progress_at_configured_interval(tmp_path):
+    rows = [_row() for _ in range(3)]
+    calls = []
+
+    wb, _, _ = build_workbook(
+        HEADER, {WITHIN_SHEET: rows}, on_progress=lambda done, total: calls.append((done, total)),
+        progress_interval_rows=2,
+    )
+    # A write-only workbook's worksheets stream to an internal generator that
+    # must be drained via save() - skipping this (as the two on_progress
+    # tests originally did) leaves it to be torn down by the garbage
+    # collector instead, at an arbitrary later point in the suite, which
+    # openpyxl surfaces as a spurious "I/O operation on closed file" warning.
+    wb.save(tmp_path / "out.xlsx")
+
+    # Initial call before any rows, one at the row-2 interval boundary, and
+    # a final flush at sheet end even though 3 isn't a multiple of 2 - so the
+    # last call always lands exactly on the true total rather than stalling
+    # one row short of it.
+    assert calls == [(0, 3), (2, 3), (3, 3)]
+
+
+def test_build_workbook_progress_totals_span_all_sheets(tmp_path):
+    sheets = {WITHIN_SHEET: [_row(), _row()], OUTSIDE_SHEET: [_row()]}
+    calls = []
+
+    wb, _, _ = build_workbook(
+        HEADER, sheets, on_progress=lambda done, total: calls.append((done, total)),
+        progress_interval_rows=1,
+    )
+    wb.save(tmp_path / "out.xlsx")
+
+    # rows_total (3) is fixed across the whole build, not reset per sheet,
+    # and rows_done only ever increases, finishing at exactly rows_total.
+    totals = {total for _, total in calls}
+    assert totals == {3}
+    done_values = [done for done, _ in calls]
+    assert done_values == sorted(done_values)
+    assert done_values[-1] == 3
+
+
+def test_build_workbook_without_on_progress_behaves_unchanged(tmp_path):
+    # on_progress omitted, as existing callers (CLI, tests) do - must not
+    # raise just because no callback was given.
+    wb, _, _ = _build_and_reload(tmp_path, {WITHIN_SHEET: [_row()]})
+    assert wb[WITHIN_SHEET].max_row == 2

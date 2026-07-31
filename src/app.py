@@ -198,14 +198,26 @@ with st.container(border=True):
         logger.info("Audit started for %s", st.session_state.filename)
 
         with st.status("Running the audit...", expanded=True) as status:
+            progress_bar = st.empty()
+
             def _on_stage(stage: str) -> None:
                 message = STAGE_MESSAGES.get(stage, stage)
                 status.update(label=message)
                 st.write(message)
 
+            def _on_progress(rows_done: int, rows_total: int) -> None:
+                # rows_total is 0 for an upload with no data rows (header
+                # only) - nothing to show a fraction of, so skip the bar
+                # rather than divide by zero.
+                if rows_total:
+                    progress_bar.progress(
+                        rows_done / rows_total,
+                        text=f"{rows_done:,} / {rows_total:,} rows written",
+                    )
+
             try:
                 st.session_state.result = process_upload(
-                    st.session_state.csv_bytes, on_stage=_on_stage
+                    st.session_state.csv_bytes, on_stage=_on_stage, on_progress=_on_progress
                 )
             except InvalidUpload as exc:
                 st.session_state.process_error = str(exc)

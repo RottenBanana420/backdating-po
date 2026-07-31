@@ -14,7 +14,11 @@ from .transform import build_trimmed_rows, split_by_reporting_period
 logger = logging.getLogger(__name__)
 
 
-def run(src: Path = config.RAW_DATA_PATH, dst: Path = config.OUTPUT_PATH) -> dict:
+def run(
+    src: Path = config.RAW_DATA_PATH,
+    dst: Path = config.OUTPUT_PATH,
+    on_progress=None,
+) -> dict:
     logger.debug("Config: src=%s dst=%s encoding=%s", src, dst, config.ENCODING)
 
     if not src.exists():
@@ -28,7 +32,9 @@ def run(src: Path = config.RAW_DATA_PATH, dst: Path = config.OUTPUT_PATH) -> dic
         raw_header, raw_rows, dropped_row_count = load_and_clean_rows(src)
         header, rows, skipped_row_count = build_trimmed_rows(raw_header, raw_rows)
         sheets = split_by_reporting_period(header, rows)
-        wb, text_column_letters_by_sheet, slicer_info_by_sheet = build_workbook(header, sheets)
+        wb, text_column_letters_by_sheet, slicer_info_by_sheet = build_workbook(
+            header, sheets, on_progress=on_progress
+        )
 
         dst.parent.mkdir(parents=True, exist_ok=True)
         save_workbook(wb, text_column_letters_by_sheet, slicer_info_by_sheet, dst)
