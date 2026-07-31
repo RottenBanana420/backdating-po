@@ -1,0 +1,2 @@
+vend,reqdate,po,dlvdate,invoiceid,receive_date,rcvtotalamt,dept,rcv_tlc,rcv_firstname,rcv_lastname
+Acme Co,1/1/2026,PO123,1/10/2026,INV1,1/15/2026 00:00:00,100.00,IT,TLC1,Jane,Doe
