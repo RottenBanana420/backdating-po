@@ -106,9 +106,9 @@ and openpyxl strips them from any file it re-saves
 builds the Slicer/SlicerCache/Drawing XML parts by hand, patching them
 into the `.xlsx` zip after openpyxl saves — modeled on a real,
 Excel-authored workbook containing working slicers (used during
-development to reverse-engineer the exact XML schema, then removed from
-the repo since it contained real business data — see the data-purge note
-in [CHANGELOG.md](CHANGELOG.md)). Because the resulting slicer cache is
+development to reverse-engineer the exact XML schema, then deleted
+locally — never committed to the repo — since it contained real business
+data; see the audit note in [CHANGELOG.md](CHANGELOG.md)). Because the resulting slicer cache is
 written directly rather than computed by a live Excel session, Excel shows
 a one-time, harmless "Out of date" banner the first time the file opens;
 clicking **Update** resolves it permanently.

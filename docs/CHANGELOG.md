@@ -67,22 +67,22 @@ public-repo readiness.
 - `scripts/` directory (superseded by `src/backdating_po/`).
 - `requirements.txt` (superseded by `pyproject.toml`).
 - `reference/Backdating POs 7.1.25-7.1.26.xlsx` — a real Excel-authored
-  workbook used during original development to reverse-engineer the
-  Slicer XML schema. Contained real business data and wasn't needed at
-  runtime; removed from the repo (see Security below).
+  workbook kept locally during original development to reverse-engineer
+  the Slicer XML schema. Contained real business data; deleted from the
+  local working tree once no longer needed (see Security below).
 
 ### Security
 
-- **Git history rewritten to remove real business data.** Earlier commits
-  had added `data/raw/raw_data.csv`, `data/processed/raw_data_fixed.csv`,
-  `data/output/po_reporting_periods.xlsx`,
-  `data/output/raw_data_fixed.xlsx`, and the reference workbook above —
-  all containing real vendor, employee, and PO financial data. History was
-  rewritten with `git filter-repo` to strip these paths from every commit
-  before this repository was made public. **Anyone with an existing local
-  clone must re-clone**; the old commit hashes no longer exist upstream.
-  Real data directories (`data/raw/`, `data/output/`, `reference/`) are
-  now gitignored so this can't recur silently.
+- **Audited full git history for real business data; none found.** Real
+  files (`data/raw/raw_data.csv`, the reference workbook above,
+  `data/output/*.xlsx`) were checked against every commit across the
+  project's entire history (`git log --all --diff-filter=A --name-only`
+  and a full tree walk over `git rev-list --all`). None were ever
+  committed — the `.gitignore` from the very first commit already kept
+  build/dependency artifacts out, and these data paths were simply never
+  `git add`ed. No history rewrite was necessary. Real data directories
+  (`data/raw/`, `data/output/`, `reference/`) are now explicitly
+  gitignored (task 11) so this can't happen by accident going forward.
 
 ## [0.1.0] - 2026-07-30 (pre-refactor baseline)
 
