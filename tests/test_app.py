@@ -1,4 +1,4 @@
-"""Smoke test for streamlit_app.py.
+"""Smoke test for src/app.py.
 
 st.testing.v1.AppTest has no reliable way to simulate a file_uploader
 interaction, so this only asserts the script loads without raising before
@@ -16,6 +16,6 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 
 def test_app_loads_without_exception():
-    at = AppTest.from_file("streamlit_app.py")
+    at = AppTest.from_file("src/app.py")
     at.run()
     assert at.exception == []
