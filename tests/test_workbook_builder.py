@@ -78,6 +78,43 @@ def test_build_workbook_attaches_table_with_correct_headers(tmp_path):
     assert slicer_info[WITHIN_SHEET] == (1, HEADER.index("reporting_month") + 1, len(HEADER))
 
 
+def test_build_workbook_defuses_formula_injection_in_free_text_columns(tmp_path):
+    rows = [
+        _row(vend="=HYPERLINK(\"http://evil.example\",\"click\")", po="+PO123", dept="-IT"),
+        _row(vend="@SUM(1,1)"),
+    ]
+
+    wb, _, _ = _build_and_reload(tmp_path, {WITHIN_SHEET: rows})
+    ws = wb[WITHIN_SHEET]
+
+    vend_col = HEADER.index("vend") + 1
+    po_col = HEADER.index("po") + 1
+    dept_col = HEADER.index("dept") + 1
+
+    row1, row2 = ws[2], ws[3]
+
+    # Value is left exactly as sourced - no apostrophe added - but marked
+    # non-formula (data_type 's') and quote-prefixed so Excel renders and
+    # re-edits it as plain text instead of evaluating it.
+    assert row1[vend_col - 1].value == "=HYPERLINK(\"http://evil.example\",\"click\")"
+    assert row1[vend_col - 1].data_type == "s"
+    assert row1[vend_col - 1].quotePrefix is True
+    assert row1[po_col - 1].value == "+PO123"
+    assert row1[po_col - 1].quotePrefix is True
+    assert row1[dept_col - 1].value == "-IT"
+    assert row1[dept_col - 1].quotePrefix is True
+    assert row2[vend_col - 1].value == "@SUM(1,1)"
+    assert row2[vend_col - 1].quotePrefix is True
+
+
+def test_build_workbook_leaves_ordinary_text_untouched(tmp_path):
+    wb, _, _ = _build_and_reload(tmp_path, {WITHIN_SHEET: [_row(vend="Acme Co", po="PO123")]})
+    ws = wb[WITHIN_SHEET]
+
+    assert ws.cell(row=2, column=HEADER.index("vend") + 1).value == "Acme Co"
+    assert ws.cell(row=2, column=HEADER.index("po") + 1).value == "PO123"
+
+
 def test_build_workbook_handles_empty_bucket_without_error(tmp_path):
     wb, text_cols, slicer_info = _build_and_reload(
         tmp_path, {WITHIN_SHEET: [], OUTSIDE_SHEET: [_row()]}

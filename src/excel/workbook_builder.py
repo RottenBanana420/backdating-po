@@ -33,7 +33,31 @@ from .styles import (
 
 logger = logging.getLogger(__name__)
 
+# Leading characters that Excel (and openpyxl) treat as formula triggers -
+# OWASP's CSV Injection guidance: https://owasp.org/www-community/attacks/CSV_Injection
+FORMULA_INJECTION_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+
 TEXT_ALIGNMENT = Alignment(horizontal="left")
+
+
+def _defuse_formula_injection(cell):
+    """Defuses formula-injection payloads (e.g. "=HYPERLINK(...)") in a
+    free-text cell pulled straight from the raw CSV, without altering the
+    value the report displays.
+
+    openpyxl only auto-marks a cell as a live formula (data_type='f') for a
+    leading "=", but Excel's own cell editor re-parses +/-/@-prefixed text
+    into a formula the moment a user opens and re-commits the cell (F2,
+    Enter) - so all four OWASP-listed triggers need defusing, not just "=".
+    Setting quotePrefix (the same style flag Excel itself sets when a user
+    types a leading apostrophe) forces the cell to render and re-edit as
+    plain text while leaving `cell.value` exactly as sourced - no visible
+    apostrophe added to a legitimate value that happens to start with one
+    of these characters (e.g. a vendor name like "-A1 Logistics").
+    """
+    if isinstance(cell.value, str) and cell.value.startswith(FORMULA_INJECTION_TRIGGERS):
+        cell.data_type = "s"
+        cell.quotePrefix = True
 
 
 # log_stage is built on contextlib.contextmanager, which Python allows to
@@ -137,6 +161,7 @@ def build_workbook(header, sheets):
                     if col_num in text_format_indices:
                         cell.number_format = "@"
                         cell.alignment = TEXT_ALIGNMENT
+                _defuse_formula_injection(cell)
                 row_cells.append(cell)
             ws.append(row_cells)
 
