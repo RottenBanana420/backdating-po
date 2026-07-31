@@ -70,3 +70,22 @@ def test_save_workbook_injects_reporting_month_slicer_parts(tmp_path):
     assert "xl/slicerCaches/slicerCache1.xml" in names
     assert "xl/slicers/slicer1.xml" in names
     assert "xl/drawings/drawing1.xml" in names
+
+
+def test_save_workbook_stores_unchanged_parts_without_recompressing(tmp_path):
+    dst = tmp_path / "out.xlsx"
+
+    _build_and_save(dst, {WITHIN_SHEET: [_row()]})
+
+    with zipfile.ZipFile(dst) as zf:
+        info_by_name = {info.filename: info for info in zf.infolist()}
+
+    # openpyxl writes these parts and save_workbook never touches them - no
+    # need to spend CPU re-deflating bytes that are already on disk verbatim.
+    for unchanged in ("xl/styles.xml", "xl/theme/theme1.xml", "docProps/core.xml"):
+        assert info_by_name[unchanged].compress_type == zipfile.ZIP_STORED
+
+    # Sheet XML always gets an <ignoredErrors> and/or slicer patch, so it
+    # must stay compressed rather than bloating the file.
+    sheet_path = next(n for n in info_by_name if n.startswith("xl/worksheets/sheet"))
+    assert info_by_name[sheet_path].compress_type == zipfile.ZIP_DEFLATED

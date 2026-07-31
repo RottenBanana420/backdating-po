@@ -20,7 +20,8 @@ def save_workbook(wb, text_column_letters_by_sheet, slicer_info_by_sheet, dst):
 
     with zipfile.ZipFile(dst, "r") as zin:
         names = zin.namelist()
-        contents = {name: zin.read(name) for name in names}
+        original_contents = {name: zin.read(name) for name in names}
+    contents = dict(original_contents)
 
     workbook_xml = contents["xl/workbook.xml"].decode("utf-8")
     rels_xml = contents["xl/_rels/workbook.xml.rels"].decode("utf-8")
@@ -72,6 +73,17 @@ def save_workbook(wb, text_column_letters_by_sheet, slicer_info_by_sheet, dst):
     ]
     contents = add_reporting_month_slicers(contents, slicer_targets)
 
+    # No stdlib zipfile API can copy a compressed member into a new archive
+    # without decompressing and re-deflating it (as of Python 3.12/3.14 -
+    # see https://discuss.python.org/t/67544 - it's an open feature
+    # request, not yet released). Deflating dominates zip CPU cost far more
+    # than inflating, so members whose bytes openpyxl already wrote
+    # unchanged (styles.xml, theme, docProps, etc.) are stored instead of
+    # re-deflated; only the handful actually patched above/by
+    # add_reporting_month_slicers pay the compression cost.
     with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zout:
-        for name in contents:
-            zout.writestr(name, contents[name])
+        for name, data in contents.items():
+            compress_type = (
+                zipfile.ZIP_DEFLATED if original_contents.get(name) != data else zipfile.ZIP_STORED
+            )
+            zout.writestr(name, data, compress_type=compress_type)
