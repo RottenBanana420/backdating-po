@@ -56,3 +56,16 @@ def test_save_workbook_writes_to_the_exact_destination_path(tmp_path):
 
     assert dst.is_file()
     assert list(tmp_path.glob("*.xlsx")) == [dst]
+
+
+def test_save_workbook_injects_reporting_month_slicer_parts(tmp_path):
+    dst = tmp_path / "out.xlsx"
+
+    _build_and_save(dst, {WITHIN_SHEET: [_row()]})
+
+    with zipfile.ZipFile(dst) as zf:
+        names = zf.namelist()
+
+    assert "xl/slicerCaches/slicerCache1.xml" in names
+    assert "xl/slicers/slicer1.xml" in names
+    assert "xl/drawings/drawing1.xml" in names

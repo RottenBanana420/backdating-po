@@ -30,7 +30,8 @@ def _saved_contents(tmp_path, sheets):
 
 def _target_for(contents, slicer_info, sheet_name):
     table_id, reporting_month_column, num_columns = slicer_info[sheet_name]
-    sheet_path = next(n for n in contents if n.startswith("xl/worksheets/sheet"))
+    sheet_path = f"xl/worksheets/sheet{table_id}.xml"
+    assert sheet_path in contents, f"expected {sheet_path} in saved zip parts"
     return SheetSlicerTarget(
         sheet_path=sheet_path,
         table_id=table_id,
@@ -71,9 +72,28 @@ def test_add_reporting_month_slicers_registers_content_type_overrides(tmp_path):
     content_types = patched["[Content_Types].xml"].decode("utf-8")
     assert "slicerCache1.xml" in content_types
     assert "slicer1.xml" in content_types
+    assert "drawing1.xml" in content_types
 
     workbook_rels = patched["xl/_rels/workbook.xml.rels"].decode("utf-8")
     assert "slicerCaches/slicerCache1.xml" in workbook_rels
+
+
+def test_add_reporting_month_slicers_wires_drawing_and_slicer_into_the_worksheet(tmp_path):
+    contents, slicer_info = _saved_contents(tmp_path, {WITHIN_SHEET: [_row()]})
+    target = _target_for(contents, slicer_info, WITHIN_SHEET)
+
+    patched = add_reporting_month_slicers(contents, [target])
+
+    sheet_xml = patched[target.sheet_path].decode("utf-8")
+    assert "<drawing " in sheet_xml
+    assert "<x14:slicerList>" in sheet_xml
+
+    folder, filename = target.sheet_path.rsplit("/", 1)
+    sheet_rels_path = f"{folder}/_rels/{filename}.rels"
+    assert sheet_rels_path in patched
+    sheet_rels = patched[sheet_rels_path].decode("utf-8")
+    assert "../drawings/drawing1.xml" in sheet_rels
+    assert "../slicers/slicer1.xml" in sheet_rels
 
 
 def test_add_reporting_month_slicers_does_not_corrupt_the_zip(tmp_path):
