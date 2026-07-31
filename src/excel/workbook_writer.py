@@ -7,8 +7,8 @@ import logging
 import re
 import zipfile
 
-from .excel_slicers import SheetSlicerTarget, add_reporting_month_slicers
 from ..logging_config import log_stage
+from .excel_slicers import SheetSlicerTarget, add_reporting_month_slicers
 
 logger = logging.getLogger(__name__)
 

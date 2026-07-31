@@ -12,7 +12,7 @@ install -e .[dev]" checkout must still be able to run the full test suite.
 import pytest
 
 pytest.importorskip("streamlit")
-from streamlit.testing.v1 import AppTest  # noqa: E402
+from streamlit.testing.v1 import AppTest
 
 
 def test_app_loads_without_exception():

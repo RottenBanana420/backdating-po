@@ -7,7 +7,7 @@ from src.config import COLUMNS_TO_KEEP, OUTSIDE_SHEET, WITHIN_SHEET
 from src.excel.excel_slicers import SheetSlicerTarget, add_reporting_month_slicers
 from src.excel.workbook_builder import build_workbook
 
-HEADER = ["reporting_month"] + COLUMNS_TO_KEEP
+HEADER = ["reporting_month", *COLUMNS_TO_KEEP]
 
 
 def _row(reporting_month="January 2026", tlc="1/15/2026", receive_date="1/20/2026 00:00:00",

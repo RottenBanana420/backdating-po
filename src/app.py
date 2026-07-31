@@ -43,7 +43,7 @@ for key in ("upload_error", "process_error"):
 
 def _rows_to_records(header, rows):
     """Converts (header, rows) into the list-of-dicts shape st.dataframe expects."""
-    return [dict(zip(header, row)) for row in rows]
+    return [dict(zip(header, row, strict=True)) for row in rows]
 
 
 # Plain-language copy for each src.uploads.process_upload() checkpoint.

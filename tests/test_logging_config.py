@@ -48,9 +48,8 @@ def test_configure_falls_back_to_info_for_invalid_log_level_env_var(monkeypatch)
 def test_log_stage_logs_start_and_finish(caplog):
     logger = logging.getLogger("test_log_stage")
 
-    with caplog.at_level(logging.INFO, logger="test_log_stage"):
-        with log_stage(logger, "example stage"):
-            pass
+    with caplog.at_level(logging.INFO, logger="test_log_stage"), log_stage(logger, "example stage"):
+        pass
 
     messages = [r.message for r in caplog.records]
     assert any(m.startswith("Starting: example stage") for m in messages)
@@ -60,10 +59,12 @@ def test_log_stage_logs_start_and_finish(caplog):
 def test_log_stage_logs_warning_and_reraises_on_failure(caplog):
     logger = logging.getLogger("test_log_stage_failure")
 
-    with caplog.at_level(logging.INFO, logger="test_log_stage_failure"):
-        with pytest.raises(ValueError, match="boom"):
-            with log_stage(logger, "example stage"):
-                raise ValueError("boom")
+    with (
+        caplog.at_level(logging.INFO, logger="test_log_stage_failure"),
+        pytest.raises(ValueError, match="boom"),
+        log_stage(logger, "example stage"),
+    ):
+        raise ValueError("boom")
 
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1
@@ -77,9 +78,8 @@ def test_log_stage_logs_warning_and_reraises_on_failure(caplog):
 def test_log_stage_measures_elapsed_time(caplog):
     logger = logging.getLogger("test_log_stage_timing")
 
-    with caplog.at_level(logging.INFO, logger="test_log_stage_timing"):
-        with log_stage(logger, "slow stage"):
-            time.sleep(0.01)
+    with caplog.at_level(logging.INFO, logger="test_log_stage_timing"), log_stage(logger, "slow stage"):
+        time.sleep(0.01)
 
     finished = next(r.message for r in caplog.records if r.message.startswith("Finished"))
     assert "(0." in finished or "(1." in finished

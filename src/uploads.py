@@ -9,8 +9,8 @@ with plain bytes.
 """
 import logging
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 from .config import COLUMNS_TO_KEEP, OUTSIDE_SHEET, WITHIN_SHEET
 from .csv_loader import load_and_clean_rows

@@ -27,10 +27,12 @@ def test_launch_ui_reports_missing_streamlit():
 
 
 def test_launch_ui_runs_streamlit_module_on_app_path():
-    with patch("main.importlib.util.find_spec", return_value=object()):
-        with patch("main.subprocess.run") as mock_run:
-            mock_run.return_value.returncode = 0
-            assert main.launch_ui() == 0
+    with (
+        patch("main.importlib.util.find_spec", return_value=object()),
+        patch("main.subprocess.run") as mock_run,
+    ):
+        mock_run.return_value.returncode = 0
+        assert main.launch_ui() == 0
     mock_run.assert_called_once_with(
         [main.sys.executable, "-m", "streamlit", "run", str(main.APP_PATH)]
     )
