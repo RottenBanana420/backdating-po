@@ -7,6 +7,7 @@ Usage:
 """
 import argparse
 import importlib.util
+import logging
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ from src.logging_config import configure
 from src.pipeline import run
 
 APP_PATH = Path(__file__).resolve().parent / "src" / "app.py"
+logger = logging.getLogger(__name__)
 
 
 def parse_args(argv=None):
@@ -44,10 +46,18 @@ def main(argv=None) -> int:
 
     configure()
     args = parse_args(argv)
+    logger.debug("CLI args: input=%s output=%s", args.input, args.output)
     try:
         run(src=args.input, dst=args.output)
     except FileNotFoundError as e:
         print(f"\nError: {e}", file=sys.stderr)
+        return 1
+    except Exception:
+        # The single full-stack-trace log for this run - individual stage
+        # failures below only log a one-line WARNING (see log_stage), so
+        # this is where a developer looks first to reproduce a failure.
+        logger.exception("Pipeline run failed")
+        print("\nError: an unexpected error occurred. See the log above for details.", file=sys.stderr)
         return 1
     print("\nPipeline completed successfully.")
     return 0
