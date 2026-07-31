@@ -6,6 +6,7 @@ from openpyxl import load_workbook
 from src.pipeline import run
 
 FIXTURE = Path(__file__).parent.parent / "data" / "sample" / "sample_raw_data.csv"
+ALL_DROPPED_FIXTURE = Path(__file__).parent / "fixtures" / "all_dropped_raw_data.csv"
 
 
 def test_pipeline_end_to_end(tmp_path):
@@ -26,3 +27,25 @@ def test_pipeline_raises_clear_error_for_missing_input(tmp_path):
     missing = tmp_path / "does_not_exist.csv"
     with pytest.raises(FileNotFoundError, match="Input file not found"):
         run(src=missing, dst=tmp_path / "out.xlsx")
+
+
+def test_pipeline_handles_all_rows_dropped_without_crashing(tmp_path):
+    dst = tmp_path / "out.xlsx"
+
+    counts = run(src=ALL_DROPPED_FIXTURE, dst=dst)
+
+    assert sum(counts.values()) == 0
+    assert dst.exists()
+
+    wb = load_workbook(dst)
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        assert ws.max_row == 1  # header row only, no data rows
+
+
+def test_pipeline_creates_missing_output_parent_directories(tmp_path):
+    dst = tmp_path / "reports" / "2026" / "out.xlsx"
+
+    run(src=FIXTURE, dst=dst)
+
+    assert dst.exists()
