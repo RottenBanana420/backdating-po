@@ -66,9 +66,17 @@ def test_build_workbook_attaches_table_with_correct_headers():
 def test_build_workbook_handles_empty_bucket_without_error():
     wb, text_cols, slicer_info = build_workbook(HEADER, {WITHIN_SHEET: [], OUTSIDE_SHEET: [_row()]})
     ws = wb[WITHIN_SHEET]
+    ws_outside = wb[OUTSIDE_SHEET]
 
+    # Verify empty bucket is handled correctly
     assert ws.max_row == 1  # header row only, no data rows
     assert ws.cell(row=1, column=1).value == "reporting_month"
     assert "Table1" in ws.tables
     assert WITHIN_SHEET in text_cols
     assert WITHIN_SHEET in slicer_info
+
+    # Verify sibling non-empty bucket still builds correctly
+    assert ws_outside.max_row == 2  # header + 1 data row
+    assert "Table2" in ws_outside.tables
+    assert OUTSIDE_SHEET in text_cols
+    assert OUTSIDE_SHEET in slicer_info
