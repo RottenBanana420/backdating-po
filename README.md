@@ -35,6 +35,7 @@ CSV file --> csv_loader --> transform --> workbook_builder --> workbook_writer -
 ```
 backdating-po/
 ├── main.py                       # CLI entry point
+├── streamlit_app.py              # Web UI entry point
 ├── pyproject.toml                # package metadata + dependencies
 ├── LICENSE                       # Apache 2.0
 ├── .github/workflows/ci.yml      # CI: pytest on Python 3.10-3.12
@@ -43,6 +44,7 @@ backdating-po/
 │   ├── csv_loader.py             # raw CSV read + row repair
 │   ├── transform.py              # column trimming, date logic, period split
 │   ├── pipeline.py               # orchestrates the stages below
+│   ├── uploads.py                # bridges Web UI uploads to pipeline.run()
 │   ├── logging_config.py         # console logging setup
 │   └── excel/
 │       ├── styles.py             # openpyxl fonts/fills/borders
@@ -70,6 +72,12 @@ backdating-po/
 python3 -m venv venv
 source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -e ".[dev]"
+```
+
+To also run the [Web UI](#web-ui), install the `app` extra as well:
+
+```bash
+pip install -e ".[dev,app]"
 ```
 
 ## Configuration
@@ -103,6 +111,39 @@ Full usage:
 python main.py --input path/to/your.csv --output path/to/report.xlsx
 ```
 
+## Web UI
+
+A Streamlit front-end wraps the same pipeline used by `main.py` — see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the underlying
+load → transform → split → build → save stages work; the UI adds nothing to
+that pipeline, it only bridges an uploaded CSV's in-memory bytes to it (see
+`src/uploads.py`).
+
+Install the extra and run:
+
+```bash
+pip install -e ".[dev,app]"
+streamlit run streamlit_app.py
+```
+
+1. **Upload** a raw PO-receipt `.csv` — drag-and-drop onto the upload box,
+   or click it to browse. A preview of the first rows is shown immediately,
+   exactly as uploaded.
+2. Click **Run pipeline**. The app re-runs the same load/transform/split
+   logic `main.py` uses, then previews both the "within" and "outside"
+   reporting-period buckets.
+3. Click **Download report (.xlsx)** to get the same styled, multi-sheet
+   workbook `main.py` produces (row shading, highlighted TLC/receive-date
+   columns, working `reporting_month` Slicer).
+
+No real data on hand? Try `data/sample/sample_raw_data.csv`.
+
+**Note:** the download is `.xlsx` only, not CSV. The processed output is
+inherently a styled, two-sheet workbook with a Slicer — a flat CSV would
+lose the within/outside split and all formatting that make the report
+useful to an auditor, so `.xlsx` is the one, obvious download rather than
+adding an unrequested CSV export alongside it.
+
 ## Testing
 
 ```bash
@@ -112,9 +153,11 @@ pytest
 Covers CSV row repair and edge cases, date/period-split logic, `config.py`
 path resolution, the styled-workbook builder (row shading, highlighted
 columns, Excel Table), the writer's XML patching (`ignoredErrors`, Slicer
-injection), the hand-authored Slicer XML itself, and end-to-end pipeline
+injection), the hand-authored Slicer XML itself, end-to-end pipeline
 integration tests (including empty-result and missing-output-directory
-cases) against the sample dataset.
+cases) against the sample dataset, and the Web UI's upload-to-pipeline
+adapter (`src/uploads.py`) plus a smoke test confirming `streamlit_app.py`
+loads without error.
 
 ## Troubleshooting
 

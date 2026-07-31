@@ -65,14 +65,33 @@ config.py ─┬─> csv_loader.py ─┐
                                 │
                                 v
                           pipeline.py  (orchestrates all of the above)
-                                │
-                                v
-                            main.py  (CLI: argument parsing, error handling)
+                          │        │
+                          v        v
+                     main.py   src/uploads.py <── streamlit_app.py
+                     (CLI)     (temp-file bridge for in-memory uploads)
 ```
 
 Every module below `pipeline.py` is a pure function of its inputs (no
 shared mutable state, no module reads another's output off disk) —
 `pipeline.run()` is the only place that wires them together in sequence.
+`main.py` and `src/uploads.py` are its two callers: both just prepare a
+source path and hand it to `pipeline.run()`, they don't duplicate any
+pipeline logic.
+
+## UI layer
+
+`streamlit_app.py` (repo root) is a second, independent entry point
+alongside `main.py`, for users who'd rather drag-and-drop a CSV in a
+browser than run a CLI. It never calls `csv_loader`/`transform`/`excel/*`
+directly — all of that goes through `src/uploads.py`, which exists solely
+to bridge a Streamlit `UploadedFile`'s in-memory bytes to `pipeline.run()`'s
+Path-based contract: `workbook_writer.save_workbook` reopens its
+destination file as a zip twice to hand-patch XML, so it needs a real path
+on disk, not a `BytesIO`. `src/uploads.py` writes the upload to a scoped
+`tempfile.TemporaryDirectory`, calls `pipeline.run()` against it, reads the
+result back into memory, and lets the temp directory clean itself up. It
+has no Streamlit import, so it's tested directly with plain bytes in
+`tests/test_uploads.py`, independent of the UI.
 
 ## Data flow
 
