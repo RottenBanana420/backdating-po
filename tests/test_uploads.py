@@ -106,6 +106,23 @@ def test_process_upload_cleans_up_temp_directory():
     assert not Path(captured_dirs[0]).exists()
 
 
+def test_process_upload_calls_on_stage_with_expected_stage_sequence():
+    csv_bytes = SAMPLE.read_bytes()
+    stages = []
+
+    process_upload(csv_bytes, on_stage=stages.append)
+
+    assert stages == ["reading", "preparing", "building_report"]
+
+
+def test_process_upload_without_on_stage_behaves_unchanged():
+    csv_bytes = SAMPLE.read_bytes()
+
+    result = process_upload(csv_bytes)  # on_stage omitted, as CLI/older callers do
+
+    assert result["xlsx_bytes"][:2] == b"PK"
+
+
 def test_process_upload_propagates_pipeline_value_errors():
     bad_csv = (
         ",".join(config.COLUMNS_TO_KEEP) + "\n"
