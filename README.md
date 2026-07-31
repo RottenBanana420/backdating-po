@@ -147,7 +147,7 @@ adding an unrequested CSV export alongside it.
 
 The Web UI is deployed on [Streamlit Community Cloud](https://share.streamlit.io):
 
-- **App URL:** https://backdating-po-lbkihwaovzjpqlrm8szlbe.streamlit.app
+- **App URL:** https://backdating-po-bdo.streamlit.app/
 - **Source repo:** private (`RottenBanana420/backdating-po`) — the app's own
   sharing setting is public, so coworkers can open and use the URL directly
   without GitHub access or a Streamlit account. Repo privacy and app
