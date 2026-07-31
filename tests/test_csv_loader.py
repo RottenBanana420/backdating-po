@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from backdating_po.csv_loader import load_and_clean_rows
+from src.csv_loader import load_and_clean_rows
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_raw_loader.csv"
 

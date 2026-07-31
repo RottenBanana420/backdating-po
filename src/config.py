@@ -5,7 +5,7 @@ CLI flags in main.py (see pipeline.run()).
 """
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 RAW_DATA_PATH = ROOT / "data" / "raw" / "raw_data.csv"
 OUTPUT_PATH = ROOT / "data" / "output" / "po_reporting_periods.xlsx"
 ENCODING = "cp1252"

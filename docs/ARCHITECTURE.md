@@ -27,27 +27,30 @@ testable, not to support a larger system that doesn't exist.
 ## Module responsibilities
 
 ```
-src/backdating_po/
+src/
 ├── config.py            Business constants: input columns, output paths,
 │                         CSV encoding, sheet names. Plain data, no logic.
-├── styles.py             openpyxl Font/Fill/Border/Alignment objects used
-│                         by workbook_builder. Split from config.py because
-│                         these are openpyxl-typed objects, not plain config.
 ├── csv_loader.py         Reads the raw CSV and repairs rows torn by stray
 │                         CR/LF characters embedded in a field.
 ├── transform.py          Column trimming, reporting_month derivation, and
 │                         the tlc-vs-receive_date within/outside/dropped
 │                         split — the core business rule this tool exists
 │                         to apply.
-├── workbook_builder.py   Builds the styled openpyxl Workbook: sheet per
-│                         bucket, month-based row shading, highlighted
-│                         tlc/receive_date columns, an Excel Table (backing
-│                         the Slicer added later).
-├── workbook_writer.py    Saves the workbook, then patches in two things
-│                         openpyxl can't write itself (see below).
-├── excel_slicers.py      Hand-authored OOXML for a real Excel Slicer.
-├── pipeline.py           Orchestrates the five stages above in order.
-└── logging_config.py     One-line logging.basicConfig() wrapper.
+├── pipeline.py           Orchestrates the stages below in order.
+├── logging_config.py     One-line logging.basicConfig() wrapper.
+└── excel/                Everything openpyxl/Excel-output-specific, grouped
+    │                     because these four modules change together and
+    │                     share no callers outside this subpackage.
+    ├── styles.py          openpyxl Font/Fill/Border/Alignment objects used
+    │                     by workbook_builder. Split from config.py because
+    │                     these are openpyxl-typed objects, not plain config.
+    ├── workbook_builder.py   Builds the styled openpyxl Workbook: sheet per
+    │                     bucket, month-based row shading, highlighted
+    │                     tlc/receive_date columns, an Excel Table (backing
+    │                     the Slicer added later).
+    ├── workbook_writer.py    Saves the workbook, then patches in two things
+    │                     openpyxl can't write itself (see below).
+    └── excel_slicers.py      Hand-authored OOXML for a real Excel Slicer.
 ```
 
 ## Dependency flow
@@ -55,10 +58,10 @@ src/backdating_po/
 ```
 config.py ─┬─> csv_loader.py ─┐
            ├─> transform.py ──┤
-           └─> workbook_builder.py <── styles.py
+           └─> excel/workbook_builder.py <── excel/styles.py
                                 │
                                 v
-                    workbook_writer.py <── excel_slicers.py
+                excel/workbook_writer.py <── excel/excel_slicers.py
                                 │
                                 v
                           pipeline.py  (orchestrates all of the above)
@@ -73,7 +76,7 @@ shared mutable state, no module reads another's output off disk) —
 
 ## Data flow
 
-1. **Raw CSV row** (43 columns, `cp1252`-encoded, `\r\n`-delimited) →
+1. **Raw CSV row** (full source export schema, `cp1252`-encoded, `\r\n`-delimited) →
    `csv_loader.load_and_clean_rows` repairs any row torn by a stray CR/LF
    embedded in a field, returning `(header, rows)`.
 2. **Trimmed + dated row** → `transform.build_trimmed_rows` keeps only the

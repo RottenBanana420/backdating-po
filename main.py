@@ -9,9 +9,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from backdating_po import config
-from backdating_po.logging_config import configure
-from backdating_po.pipeline import run
+from src import config
+from src.logging_config import configure
+from src.pipeline import run
 
 
 def parse_args(argv=None):

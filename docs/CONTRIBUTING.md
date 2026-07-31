@@ -4,7 +4,7 @@
 
 - Follow PEP 8. Four-space indentation, no tabs.
 - Add type hints where they clarify a function's contract (e.g. return
-  types on public functions in `src/backdating_po/`); don't add them
+  types on public functions in `src/`); don't add them
   everywhere reflexively — a one-line helper with an obvious signature
   doesn't need them.
 - Docstrings and comments explain **why**, not what — the code already

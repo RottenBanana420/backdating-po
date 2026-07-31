@@ -34,16 +34,17 @@ CSV file --> csv_loader --> transform --> workbook_builder --> workbook_writer -
 backdating-po/
 ├── main.py                       # CLI entry point
 ├── pyproject.toml                # package metadata + dependencies
-├── src/backdating_po/
+├── src/
 │   ├── config.py                 # paths, column lists, sheet names
-│   ├── styles.py                 # openpyxl fonts/fills/borders
 │   ├── csv_loader.py             # raw CSV read + row repair
 │   ├── transform.py              # column trimming, date logic, period split
-│   ├── workbook_builder.py       # styled worksheet construction
-│   ├── workbook_writer.py        # save + XML patching (ignoredErrors)
-│   ├── excel_slicers.py          # hand-authored OOXML Slicer injection
-│   ├── pipeline.py               # orchestrates the stages above
-│   └── logging_config.py         # console logging setup
+│   ├── pipeline.py               # orchestrates the stages below
+│   ├── logging_config.py         # console logging setup
+│   └── excel/
+│       ├── styles.py             # openpyxl fonts/fills/borders
+│       ├── workbook_builder.py   # styled worksheet construction
+│       ├── workbook_writer.py    # save + XML patching (ignoredErrors)
+│       └── excel_slicers.py      # hand-authored OOXML Slicer injection
 ├── data/
 │   ├── raw/                      # put your real raw_data.csv here (gitignored)
 │   ├── sample/                   # synthetic demo dataset (tracked)
@@ -71,7 +72,7 @@ pip install -e ".[dev]"
 
 The set of columns kept in the report, the two sheet names, and the CSV
 encoding (`cp1252`, matching the source export) are fixed business rules —
-see `src/backdating_po/config.py`. Input/output file locations are the one
+see `src/config.py`. Input/output file locations are the one
 thing meant to vary, and are overridable via CLI flags (below) rather than
 a config file, since there's nothing else to configure.
 
@@ -121,10 +122,10 @@ and checks the resulting workbook's structure.
   export row rather than the CR/LF defect this tool repairs automatically.
 - **`UnicodeDecodeError` on load** — the source CSV isn't `cp1252`-encoded.
   If your export uses a different encoding, change `ENCODING` in
-  `src/backdating_po/config.py`.
+  `src/config.py`.
 - **Excel shows an "Out of date" banner on the Slicer when you first open
   the report** — expected, one-time, harmless. Click **Update** once; see
-  the docstring in `src/backdating_po/excel_slicers.py` for why.
+  the docstring in `src/excel/excel_slicers.py` for why.
 
 ## Contributing
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from openpyxl import load_workbook
 
-from backdating_po.pipeline import run
+from src.pipeline import run
 
 FIXTURE = Path(__file__).parent.parent / "data" / "sample" / "sample_raw_data.csv"
 

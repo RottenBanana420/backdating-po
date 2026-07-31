@@ -8,7 +8,7 @@ from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
 
-from .config import HIGHLIGHT_COLUMNS, TEXT_COLUMNS
+from ..config import HIGHLIGHT_COLUMNS, TEXT_COLUMNS
 from .styles import (
     HEADER_ALIGNMENT,
     HEADER_BORDER,
@@ -25,7 +25,7 @@ from .styles import (
     MIN_COLUMN_WIDTH,
     MONTH_FILL_COLORS,
 )
-from .transform import parse_reporting_month, to_date_only
+from ..transform import parse_reporting_month, to_date_only
 
 
 def build_workbook(header, sheets):

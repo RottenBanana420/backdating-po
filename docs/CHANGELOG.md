@@ -3,6 +3,27 @@
 All notable changes to this project are documented in this file, in the
 style of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-07-30
+
+### Changed
+
+- Flattened the package layout: `src/backdating_po/` → `src/`, so `src/`
+  itself is the importable package (`import src`) rather than wrapping a
+  separate `backdating_po/` package directory. Trade-off: the installable
+  distribution name (`backdating-po`, used for `pip install`) and the
+  import name (`src`) now differ, which is unconventional for a package
+  meant for wider distribution — acceptable here since this tool is not
+  published to PyPI.
+- Grouped the four openpyxl/Excel-output-specific modules (`styles.py`,
+  `workbook_builder.py`, `workbook_writer.py`, `excel_slicers.py`) into an
+  `excel/` subpackage; `config.py`, `csv_loader.py`, `transform.py`,
+  `pipeline.py`, and `logging_config.py` stay at the top level of `src/`.
+- Fixed `config.ROOT`, which had one extra `.parent` hop left over from
+  the previous `src/backdating_po/config.py` depth — after the move to
+  `src/config.py` (one level shallower), the stale calculation resolved
+  the repo root one directory too high, breaking the default
+  `data/raw/raw_data.csv` / `data/output/...` paths.
+
 ## [0.2.0] - 2026-07-30
 
 Full repository overhaul: package restructure, tests, documentation, and
