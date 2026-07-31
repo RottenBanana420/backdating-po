@@ -43,3 +43,7 @@ Thumbs.db
 
 # --- Internal planning artifacts (not part of the shipped documentation) ---
 docs/superpowers/
+
+# --- Local agent tooling (machine-local caches, not part of the project) ---
+.claude/
+.agents/
